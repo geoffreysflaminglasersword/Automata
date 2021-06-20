@@ -3,22 +3,25 @@ import 'src/Scheduling/refinersAndParsers';
 import * as DU from 'src/Utils';
 import * as chrono from 'chrono-node';
 
-import { ANY_ALL_CLAUSE, ANY_META, E, GetClauses, MATCHERS, MetaClause, SIMPLE_REPLACE } from "src/Scheduling/Clause";
-import { Obsidian, zip } from '../common';
+import { ANY_ALL_CLAUSE, ANY_META, E, GetClauses, MATCHERS, MetaClause, SanitizeInput } from "src/Scheduling/Clause";
+import { ChroniclerSettings, get, settings, zip } from '../common';
 import { RRule, RRuleSet } from 'rrule';
 
-import { ChroniclerSettings } from '../settings';
 import { ParsingComponents } from 'chrono-node/dist/results';
 import { moment } from 'src/moment_range';
 
 export default class Rule extends RRuleSet {
     clauses: MetaClause[] = [];
     settings: ChroniclerSettings;
+    originalString: string;
 
-    constructor(input: string, obsidian: Obsidian) {
+
+    constructor(input: string) {
         super(true);
-        this.settings = obsidian.getSettings('obsidian-chronicler');
-        input = SanitizeInput(input);
+        this.settings = get(settings);
+        this.originalString = input;
+        settings.subscribe((v) => this.settings = v);
+        input = SanitizeRule(input);
         const singleCommaSet = new RegExp(/(?<=^[^,]*)\S+, ?(?:\S+(?:,(?: and)? ?)?)+(?=(?:[^,])*$)/gm);
         const doubleCommaSet = new RegExp(/\S+?, ?(?:\S+(?:,( and)? ?)?)+?(?= \S+?,(?:\S,?)+)/gm);
         const range = new RegExp('\\w*?(?<!' + ANY_ALL_CLAUSE + ') ?(\\w+ - (?:\\w* \\d+\\w+|\\w+ \\d+|\\w+))', 'gim');
@@ -26,7 +29,7 @@ export default class Rule extends RRuleSet {
 
 
         let types = GetClauses(input, ANY_META, E.TYPES);
-        let clauses = GetClauses(input, ANY_META♦, E.CLAUSES);
+        let clauses = GetClauses(input, ANY_META, E.CLAUSES);
         // console.log(input, '\n', types, '\n', clauses, '\n');
 
         let preclauses = new Array<string>();
@@ -170,19 +173,26 @@ export default class Rule extends RRuleSet {
         return super.after(dt, inc);
     }
 
+    print() {
+        console.log("%c" + this.originalString, "color:green");
+        console.log("End Result: ", this);
+        let count = 0;
+        for (let i of this.all()) console.log("%c result: " + i.toUTCString() + "   " + i, "color:orange");
+    }
+
 }
 
 
 
 // TODO: implement better validation at the clause level, include validation that dates don't use 05-05-2020 (dash notation) 
-function SanitizeInput(input: string) {
+function SanitizeRule(input: string) {
     //TODO: make sure to use the configured triggerphrase instead of @
     //TODO: make sure that this replaces up to the last @, e.g. '@every day @every week'
     input = input.replace(/.*@ ?(include)?/i, 'include '); // everything before and including '@' isn't important, default to include
     input = input.replace(/((\[\[?)|(\]\]?))/g, ''); // take care of [[wikilinks]] and [brackets]
     input = input.replace(/(\(|\))/g, ''); // take care of (parenthesis)
 
-    SIMPLE_REPLACE.forEach((v) => input = input.replace(...MATCHERS[v]));
+    input = SanitizeInput(input);
 
     // IMPORTANT: make sure all other dash replacement happens before these two 
     input = input.replace(/ through /gim, ' - '); // we're using space separated dashes for ranges (it's chrono-required for slash date range parsing)
@@ -216,6 +226,7 @@ function SanitizeInput(input: string) {
 
     TODO: after all this nastiness, it looks like moment-range might be able to do a better job
     */
+    console.log('After sanitization: ', input);
 
     // TODO: should probably filter out 'the,' i.e. 'quarter on the last day,' doubtful there's edge cases but who knows. See if chrono handels this already
     return input;

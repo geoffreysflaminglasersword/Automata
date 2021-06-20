@@ -1,6 +1,7 @@
 import { KEY, ObsidianEvent, Plugin, Scope, KeymapEventListener, Modifier } from './common';
+import { MONTHS } from './Scheduling/Clause';
 
-export const rxLastWord = /(?:(?<=\s)(\S+?)|(\s))?$/; // if last char is space, matches only the space
+export const rxLastWordOrSpace = /(?:(?<=(?:\s|\W)?)(\w+?)|(\s))?$/; // if last char is space, matches only the space
 export function regexIndexOf(string: string, regex: RegExp, startpos: number) {
     var indexOf = string.substring(startpos || 0).search(regex);
     return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
@@ -12,8 +13,7 @@ export function randomDate(start: Date, end: Date) {
     return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 export function monthName(n: number) {
-    const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-    return months[n];
+    return MONTHS[n];
 }
 
 

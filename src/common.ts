@@ -17,19 +17,20 @@ import {
 } from "obsidian";
 import { ChroniclerSettings, settings } from "./settings";
 import { Register, isNullOrWhitespace, zip } from "./Utils";
+import { get, writable } from "svelte/store";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
-
-import { writable } from "svelte/store";
 
 export {
     onMount, onDestroy, writable, getContext, setContext, settings,
     App, FileSystemAdapter, Plugin, Scope, Vault, Modal, Notice, PluginSettingTab,
-    ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace,
+    ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace, get,
 };
 export type {
     PluginManifest, KeymapEventHandler, Modifier,
-    KeymapEventListener,
+    KeymapEventListener, ChroniclerSettings,
 };
+
+
 
 export const PluginRef = [
     'chronicler', 'kanban',
@@ -71,7 +72,7 @@ export type GetPluginId<I extends PluginName> = `obsidian-${I}`;
 export type PluginSettings = { [P in PluginName]: `${Capitalize<P>}Settings` };
 export type GetPluginSettings<N extends PluginName> = `${Capitalize<N>}Settings`;
 export type TFromArray<T extends ReadonlyArray<unknown>> = T extends ReadonlyArray<infer TFromArray> ? TFromArray : never;
-export interface SuggestionCtx { app: App, plugin: Plugin, scope: Scope; }
+export interface SuggestionCtx { app: App, plugin: Plugin, scope: Scope; editor: CodeMirror.Editor; }
 
 
 export declare type KEY =

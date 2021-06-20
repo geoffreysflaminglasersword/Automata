@@ -2,7 +2,7 @@ import * as DU from 'src/Utils';
 import * as chrono from 'chrono-node';
 import * as moment from 'moment';
 
-import { hasDuplicates, zip } from 'src/Utils';
+import { hasDuplicates, isNullOrWhitespace, zip } from 'src/Utils';
 
 import { ParsingComponents } from 'chrono-node/dist/results';
 import RRule from 'rrule';
@@ -15,7 +15,7 @@ export const META_CLAUSES = ["except", "include"] as const;
 export const ALT_CLAUSES = ['until', 'beginning'] as const;
 export const ALL_CLAUSES = [...CLAUSES, ...META_CLAUSES, ...ALT_CLAUSES] as const;
 
-export const RELATIVE = ['next', 'last', 'this'] as const;
+export const RELATIVE = ['next', 'last', 'this', 'today', 'tomorrow', 'yesterday'] as const;
 
 export const INFORMAL_QUANTIFIERS = ['couple', 'few', 'several', 'other', 'back'] as const;
 export const UNIT_QUANTIFIERS = ['dozen'] as const;
@@ -24,16 +24,25 @@ export const MIDS = ['mid-month', 'mid-day'] as const;
 export const ALL_QUANTIFIERS = [...INFORMAL_QUANTIFIERS, ...UNIT_QUANTIFIERS, ...DATE_QUANTIFIERS, ...MIDS] as const;
 
 export const RECURRANCES = [
+    'mondays', 'tuesdays', 'wednesdays', 'thursdays', 'fridays', 'saturdays', 'sundays',
+
     'hourly', 'daily', 'biweekly', 'weekly', 'semi-monthly', 'bi-monthly',
     'monthly', 'semiannually', 'annually', 'biennially', 'semi-decennially',
     'bi-decennially', 'decennially', 'semi-centennially', 'bi-centennially',
-    'centennially', 'millenially'
+    'centennially', 'millenially',
+
 ] as const;
 
 export const MULTI = ['weekday', 'workday', 'weekend'] as const;
 
+export const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'] as const;
+export const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+export const SPECIAL = ['quarter'] as const;
+export const ALT_DATE_QUANTIFIERS = ['hour', 'day', 'week', 'month', 'year'] as const;
+export const GENERAL = [...DAYS, ...MONTHS, ...SPECIAL, ...ALT_DATE_QUANTIFIERS] as const;
+
 export const SIMPLE_REPLACE = [...ALL_QUANTIFIERS, ...ALT_CLAUSES, ...RECURRANCES, ...MULTI] as const;
-export const ALL_KEYWORDS = [...ALL_CLAUSES, ...SIMPLE_REPLACE, ...RELATIVE] as const;
+export const ALL_KEYWORDS = [...ALL_CLAUSES, ...SIMPLE_REPLACE, ...RELATIVE, ...GENERAL] as const;
 
 
 export const ANY_CLAUSE: string = (() => { let s: string = ''; for (let i of CLAUSES) s += i + '|'; return s.slice(0, -1); })();
@@ -53,7 +62,16 @@ export const MATCHERS: Record<typeof SIMPLE_REPLACE[number], [RegExp, string]> =
     'century': [/ ?century ?/gim, ' 100 years '],
     'millenium': [/ ?millenium ?/gim, ' 1000 years '],
     'mid-month': [/ ?mid ?-?month ?/gim, ' month on the 15th '],
-    'mid-day': [/ ?mid ?-?day ?/gim, ' noon '], // FUTURE: mid/half could be quantifiers, and fractional intervals were supported
+    'mid-day': [/ ?mid ?-?day ?/gim, ' noon '], // FUTURE: mid/half could be quantifiers, and fractional intervals could be supported
+
+    'mondays': [/ ?mondays ?/gim, ' every monday '],
+    'tuesdays': [/ ?tuesdays ?/gim, ' every tuesday '],
+    'wednesdays': [/ ?wednesdays ?/gim, ' every wednesday '],
+    'thursdays': [/ ?thursdays ?/gim, ' every thursday '],
+    'fridays': [/ ?fridays ?/gim, ' every friday '],
+    'saturdays': [/ ?saturdays ?/gim, ' every saturday '],
+    'sundays': [/ ?sundays ?/gim, ' every sunday '],
+
     'hourly': [/ ?hourly ?/gim, ' every hour '],
     'daily': [/ ?daily ?/gim, ' every day '],
     'biweekly': [/ ?biweekly ?/gim, ' every 2 weeks '],
@@ -78,13 +96,40 @@ export const MATCHERS: Record<typeof SIMPLE_REPLACE[number], [RegExp, string]> =
     'until': [/ until /gim, ' ending '],
 };
 
+export function SanitizeInput(input: string) {
+    SIMPLE_REPLACE.forEach((v) => input = input.replace(...MATCHERS[v]));
+    return input;
+}
+
+
+const LikelySemanticOrdering = new Map<ReadonlyArray<string>, Array<string>>(
+    [
+        [META_CLAUSES, [...CLAUSES, ...ALT_CLAUSES, ...RELATIVE, ...RECURRANCES, ...ALL_QUANTIFIERS, ...GENERAL]],
+        [CLAUSES, [...RELATIVE, ...MULTI, ...ALL_QUANTIFIERS, ...GENERAL]],
+        [ALT_CLAUSES, [...RELATIVE, ...MULTI, ...ALL_QUANTIFIERS, ...GENERAL]],
+        [RELATIVE, [...MULTI, ...GENERAL]],
+        [MULTI, [...ALL_CLAUSES, ...ALT_CLAUSES]],
+        [RECURRANCES, [...ALL_CLAUSES, ...ALT_CLAUSES,]],
+        [GENERAL, [...ALL_CLAUSES, ...ALT_CLAUSES,]],
+    ]
+
+);
+type Mutable<T> = { -readonly [P in keyof T]: T[P] };
+export function GetLikely(input: string): string[] {
+    if (isNullOrWhitespace(input)) { console.log('HERE'); return [...ALL_KEYWORDS]; };
+    console.log('JEFF:', input);
+    for (let [key, val] of LikelySemanticOrdering)
+        if (key.includes(input)) return val;
+    return [...ALL_KEYWORDS];
+}
+
+
+
 export enum E {
     BOTH = 0,
     TYPES = 1,
     CLAUSES = 2,
 }
-
-
 
 export function GetClauses(input: string, clauseMatcher: string, includeType = E.BOTH): string[] {
     let splitter: string = '(?<!(?:' + clauseMatcher + ') )(' + clauseMatcher + ')'; // splits clauses but ignores double clauses, e.g. 'every starting'

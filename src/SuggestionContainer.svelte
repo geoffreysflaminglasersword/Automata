@@ -1,29 +1,46 @@
 <script lang="ts">
   import SuggestionItem from "./SuggestionItem.svelte";
   import { wrap } from "./Utils";
-  import { onMount, onDestroy, getContext, Keys, SuggestionCtx, Register } from "./common";
+  import { onMount, onDestroy, getContext, Keys, SuggestionCtx, Register, isNullOrWhitespace } from "./common";
   import { matchSorter } from "match-sorter";
-  import { ALL_KEYWORDS, ALL_QUANTIFIERS, ALL_CLAUSES, RELATIVE, ALT_CLAUSES, RECURRANCES } from "./Scheduling/Clause";
+  import {
+    GetLikely,
+    ALL_KEYWORDS,
+    ALL_QUANTIFIERS,
+    ALL_CLAUSES,
+    RELATIVE,
+    ALT_CLAUSES,
+    RECURRANCES,
+  } from "./Scheduling/Clause";
 
   export let input: string, current: string;
-  $: suggestions = getDateSuggestions(input);
+  $: likely = GetLikely(input); //TODO: add multi-word suggestions and make top 2 results based on MRU
+  $: suggestions = matchSorter(likely, isNullOrWhitespace(input) ? "" : input).slice(0, 10); //getDateSuggestions(input);
   $: current = suggestions[current_index];
 
-  let { app, plugin, scope } = getContext<SuggestionCtx>(Keys.suggestion);
+  let { app, plugin, scope, editor } = getContext<SuggestionCtx>(Keys.suggestion);
   let current_index: number = 0;
 
-  let unregister: () => void;
   onMount(() => {
-    unregister = Register(scope, [
-      [[], "ArrowUp", up],
-      [[], "ArrowDown", down],
-    ]);
+    editor.addKeyMap(disableTab);
+    unregister = Register(
+      scope,
+      [
+        [[], "ArrowUp", up],
+        [[], "ArrowDown", down],
+      ],
+      plugin,
+      [["keyHandled", () => (current_index = 0)]]
+    );
     (<any>app).keymap.pushScope(scope);
   });
   onDestroy(() => {
+    editor.removeKeyMap(disableTab);
     unregister();
     (<any>app).keymap.popScope(scope);
   });
+  let unregister: () => void;
+  const disableTab = { Tab: (cm: CodeMirror.Editor) => cm.replaceSelection(" ", "end") };
 
   let up = (event: KeyboardEvent) => nav(-1, event);
   let down = (event: KeyboardEvent) => nav(1, event);

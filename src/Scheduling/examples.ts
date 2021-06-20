@@ -7,7 +7,7 @@ export const working: string[] = [
     '@every Halloween,Christmas,mothers-day starting 2 Halloweens ago ending easter 2022',
     '@every 13,7 sat ending 2024AD', // for now, if the year is the only thing in the clause it has to be qualified with BC/AD/BCE/CE
     '@every 1,3 sat,mon',
-    '@every month on 2nd,3rd sat ending 2022AD',
+    '@every month on 2nd,3rd sat ending 2022CE', //TODO: replace 4 digit numbers not followed by a suffix with CE
     '@every thur,sat',
     '@every mon,wed,sat',
     '@every 2 mon,wed,sat',
@@ -129,6 +129,7 @@ export const shouldWork: string[] = [
 
 
     // new
+    '@annually starting next thursday ending 2024',
     '@-2hr5min',
     '@two weeks from tomorrow',
     '@2 days before yesterday',
