@@ -1,0 +1,10 @@
+{
+    "id": "obsidian-chronicler",
+    "name": "Chronicler",
+    "version": "1.0.0",
+    "minAppVersion": "0.12.2",
+    "description": "",
+    "author": "Obsidian",
+    "authorUrl": "",
+    "isDesktopOnly": false
+}
