@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, SliderComponent } from "obsidian";
+import { App, Modifier, PluginSettingTab, Setting } from "./common";
 import { RRule, Weekday } from 'rrule';
 
 import Chronicler from './main';
@@ -6,10 +6,11 @@ import { writable } from "svelte/store";
 
 export interface ChroniclerSettings {
     fallbackLastBound: boolean;
-    weekStarts: string,
+    weekStarts: string;
     weekStart: Weekday;
     defaultMaxEvents: number;
     autocompleteTriggerPhrase: string;
+    insertDatesModifier: Exclude<Modifier, 'Mod'>;
 }
 
 export const DEFAULT_SETTINGS: ChroniclerSettings = {
@@ -17,7 +18,8 @@ export const DEFAULT_SETTINGS: ChroniclerSettings = {
     weekStarts: 'Sunday',
     weekStart: RRule.SU,
     defaultMaxEvents: 8,
-    autocompleteTriggerPhrase: '@'
+    autocompleteTriggerPhrase: '@',
+    insertDatesModifier: 'Shift',
 };
 
 export const settings = writable(DEFAULT_SETTINGS);

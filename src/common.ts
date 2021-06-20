@@ -3,7 +3,9 @@ import {
     FileSystemAdapter,
     ItemView,
     KeymapEventHandler,
+    KeymapEventListener,
     Modal,
+    Modifier,
     Notice,
     Plugin,
     PluginManifest,
@@ -14,7 +16,7 @@ import {
     WorkspaceLeaf,
 } from "obsidian";
 import { ChroniclerSettings, settings } from "./settings";
-import { Register, zip } from "./Utils";
+import { Register, isNullOrWhitespace, zip } from "./Utils";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
 
 import { writable } from "svelte/store";
@@ -22,9 +24,12 @@ import { writable } from "svelte/store";
 export {
     onMount, onDestroy, writable, getContext, setContext, settings,
     App, FileSystemAdapter, Plugin, Scope, Vault, Modal, Notice, PluginSettingTab,
-    ItemView, WorkspaceLeaf, Setting, zip, Register,
+    ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace,
 };
-export type { PluginManifest, KeymapEventHandler, KEY, ObsidianEvent };
+export type {
+    PluginManifest, KeymapEventHandler, Modifier,
+    KeymapEventListener,
+};
 
 export const PluginRef = [
     'chronicler', 'kanban',
@@ -69,7 +74,7 @@ export type TFromArray<T extends ReadonlyArray<unknown>> = T extends ReadonlyArr
 export interface SuggestionCtx { app: App, plugin: Plugin, scope: Scope; }
 
 
-declare type KEY =
+export declare type KEY =
     'Alt' |
     'CapsLock' |
     'Control' |
@@ -97,7 +102,7 @@ declare type KEY =
     'Y' | 'Z'
     ;
 
-declare type ObsidianEvent =
+export declare type ObsidianEvent =
     'change' |
     'beforeChange' |
     'cursorActivity' |
@@ -127,3 +132,10 @@ declare type ObsidianEvent =
     'overwriteToggle'
     ;
 
+export type CM_Mod = 'ctrlKey' | 'altKey' | 'shiftKey' | 'metaKey';
+export const CM_Map: Record<Exclude<Modifier, 'Mod'>, CM_Mod> = {
+    'Alt': 'altKey',
+    'Ctrl': 'ctrlKey',
+    'Meta': 'metaKey',
+    'Shift': 'shiftKey'
+} as const;

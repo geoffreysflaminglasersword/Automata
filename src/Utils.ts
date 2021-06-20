@@ -1,6 +1,4 @@
-import { KEY, ObsidianEvent, Plugin, Scope } from './common';
-
-import { KeymapEventListener, Modifier } from 'obsidian';
+import { KEY, ObsidianEvent, Plugin, Scope, KeymapEventListener, Modifier } from './common';
 
 export const rxLastWord = /(?:(?<=\s)(\S+?)|(\s))?$/; // if last char is space, matches only the space
 export function regexIndexOf(string: string, regex: RegExp, startpos: number) {
@@ -25,6 +23,12 @@ export function wrap(num: number, max: number): number {
 }
 export function hasDuplicates<T>(arr: Array<T>) {
     return new Set(arr).size !== arr.length;
+}
+export function isNullOrWhitespace(input) {
+
+    if (typeof input === 'undefined' || input == null) return true;
+
+    return input.replace(/\s/g, '').length < 1;
 }
 
 export type MakeIterable<T> = { [K in keyof T]: Iterable<T[K]> };

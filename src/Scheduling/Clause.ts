@@ -12,44 +12,71 @@ import { eHOLIDAY } from 'src/Scheduling/holidays';
 //TODO: add clauses: before, after, remind
 export const CLAUSES = ["starting", "ending", "every"] as const;
 export const META_CLAUSES = ["except", "include"] as const;
-export const ALL_CLAUSES = [...CLAUSES, ...META_CLAUSES] as const;
-export const ALT_CLAUSES = ['until', 'beginning'];
+export const ALT_CLAUSES = ['until', 'beginning'] as const;
+export const ALL_CLAUSES = [...CLAUSES, ...META_CLAUSES, ...ALT_CLAUSES] as const;
 
 export const RELATIVE = ['next', 'last', 'this'] as const;
 
 export const INFORMAL_QUANTIFIERS = ['couple', 'few', 'several', 'other', 'back'] as const;
 export const UNIT_QUANTIFIERS = ['dozen'] as const;
 export const DATE_QUANTIFIERS = ['decade', 'century', 'millenium'] as const;
-export const ALL_QUANTIFIERS = [...INFORMAL_QUANTIFIERS, ...UNIT_QUANTIFIERS, ...DATE_QUANTIFIERS] as const;
-
+export const MIDS = ['mid-month', 'mid-day'] as const;
+export const ALL_QUANTIFIERS = [...INFORMAL_QUANTIFIERS, ...UNIT_QUANTIFIERS, ...DATE_QUANTIFIERS, ...MIDS] as const;
 
 export const RECURRANCES = [
     'hourly', 'daily', 'biweekly', 'weekly', 'semi-monthly', 'bi-monthly',
-    'monthly', 'semi-annually', 'annually', 'bi-ennially', 'semi-decennially',
+    'monthly', 'semiannually', 'annually', 'biennially', 'semi-decennially',
     'bi-decennially', 'decennially', 'semi-centennially', 'bi-centennially',
     'centennially', 'millenially'
 ] as const;
 
 export const MULTI = ['weekday', 'workday', 'weekend'] as const;
 
-export const NEEDS_REPLACE = [...ALL_QUANTIFIERS, ...ALT_CLAUSES, ...RECURRANCES] as const;
-export const ALL_KEYWORDS = [...ALL_CLAUSES, 'next', 'last', 'this'] as const;
+export const SIMPLE_REPLACE = [...ALL_QUANTIFIERS, ...ALT_CLAUSES, ...RECURRANCES, ...MULTI] as const;
+export const ALL_KEYWORDS = [...ALL_CLAUSES, ...SIMPLE_REPLACE, ...RELATIVE] as const;
+
 
 export const ANY_CLAUSE: string = (() => { let s: string = ''; for (let i of CLAUSES) s += i + '|'; return s.slice(0, -1); })();
 export const ANY_META: string = (() => { let s: string = ''; for (let i of META_CLAUSES) s += i + '|'; return s.slice(0, -1); })();
 export const ANY_ALL_CLAUSE: string = (() => { let s: string = ''; for (let i of ALL_CLAUSES) s += i + '|'; return s.slice(0, -1); })();
 export const ANY: string = (() => { let s: string = ''; for (let i of ALL_KEYWORDS) s += i + '|'; return s.slice(0, -1); })();
 
-// type Greeble = { match: RegExp, replace: string; };
 
-type REPS = typeof NEEDS_REPLACE[number];
-const MATCHERS: Record<REPS, [RegExp, string]> = {
-    couple: [/ (?:a )?couple /gim, ''],
-    few: [/ (?:a )?few /gim, ''],
-    several: [/ several /gim, ''],
-    dozen: [/ (?:a )?dozen /gim, ''],
+export const MATCHERS: Record<typeof SIMPLE_REPLACE[number], [RegExp, string]> = {
+    'back': [/ back ?/gim, ' ago '],// chrono doesn't understand "couple years back" but understands "couple years ago"
+    'other': [/ other /gim, ' 2 '],// 'every other day' doesn't work but 'every 2 day' does
+    'couple': [/ (?:a )?couple /gim, ' 2 '],
+    'few': [/ (?:a )?few /gim, ' 3 '],
+    'several': [/ several /gim, ' 4 '],
+    'dozen': [/ (?:a )?dozen /gim, ' 12 '],
+    'decade': [/ ?decade ?/gim, ' 10 years '],
+    'century': [/ ?century ?/gim, ' 100 years '],
+    'millenium': [/ ?millenium ?/gim, ' 1000 years '],
+    'mid-month': [/ ?mid ?-?month ?/gim, ' month on the 15th '],
+    'mid-day': [/ ?mid ?-?day ?/gim, ' noon '], // FUTURE: mid/half could be quantifiers, and fractional intervals were supported
+    'hourly': [/ ?hourly ?/gim, ' every hour '],
+    'daily': [/ ?daily ?/gim, ' every day '],
+    'biweekly': [/ ?biweekly ?/gim, ' every 2 weeks '],
+    'weekly': [/ ?weekly ?/gim, ' every week '],
+    'semi-monthly': [/ ?semi-?monthly ?/gim, ' every month on the 15th '],
+    'bi-monthly': [/ ?bi-?monthly ?/gim, ' every 2 months '],
+    'monthly': [/ ?monthly ?/gim, ' every month '],
+    'semiannually': [/ ?(bi|semi)-?annually ?/gim, ' every 6 months '],
+    'annually': [/ ?(yearly|annually) ?/gim, ' every year '],
+    'biennially': [/ ?bi-?ennially ?/gim, ' every 2 years '],
+    'semi-decennially': [/ ?semi-?decennially ?/gim, ' every 5 years '],
+    'bi-decennially': [/ ?bi-?decennially ?/gim, ' every 20 years '],
+    'decennially': [/ ?decennially ?/gim, ' every 10 years '],
+    'semi-centennially': [/ ?semi-?centennially ?/gim, ' every 50 years '],
+    'bi-centennially': [/ ?bi-?centennially ?/gim, ' every 200 years '],
+    'centennially': [/ ?centennially ?/gim, ' every 100 years '],
+    'millenially': [/ ?millennially ?/gim, ' every 1000 years '],// yes, I like to schedule things 1000 years in advance
+    'weekday': [/ ?weekday ?/gim, ' mon,tue,wed,thu,fri '],
+    'workday': [/ ?workday ?/gim, ' mon,tue,wed,thu,fri '],
+    'weekend': [/ ?weekend ?/gim, ' sat,sun '],
+    'beginning': [/ beginning /gim, ' starting '],
+    'until': [/ until /gim, ' ending '],
 };
-
 
 export enum E {
     BOTH = 0,
@@ -145,7 +172,6 @@ export class MetaClause extends Clause {
         for (let [T, cz] of zip(types, clauses)) {
             let whichT: Clause;
             T = T.toLowerCase();
-            if (!(CLAUSES.contains(T))) throw new Error("What the fuck man\n" + T);
 
             switch (T) {
                 case 'every': this.every = new Clause(true); whichT = this.every; break;

@@ -2,6 +2,8 @@
   import SuggestionItem from "./SuggestionItem.svelte";
   import { wrap } from "./Utils";
   import { onMount, onDestroy, getContext, Keys, SuggestionCtx, Register } from "./common";
+  import { matchSorter } from "match-sorter";
+  import { ALL_KEYWORDS, ALL_QUANTIFIERS, ALL_CLAUSES, RELATIVE, ALT_CLAUSES, RECURRANCES } from "./Scheduling/Clause";
 
   export let input: string, current: string;
   $: suggestions = getDateSuggestions(input);

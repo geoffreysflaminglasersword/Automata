@@ -3,11 +3,10 @@ import 'src/Scheduling/refinersAndParsers';
 import * as DU from 'src/Utils';
 import * as chrono from 'chrono-node';
 
-import { E, GetClauses, MC_MATCHER, MetaClause } from "src/Scheduling/Clause";
+import { ANY_ALL_CLAUSE, ANY_META, E, GetClauses, MATCHERS, MetaClause, SIMPLE_REPLACE } from "src/Scheduling/Clause";
 import { Obsidian, zip } from '../common';
 import { RRule, RRuleSet } from 'rrule';
 
-import { AK_MATCHER } from "src/Scheduling/Clause";
 import { ChroniclerSettings } from '../settings';
 import { ParsingComponents } from 'chrono-node/dist/results';
 import { moment } from 'src/moment_range';
@@ -22,12 +21,12 @@ export default class Rule extends RRuleSet {
         input = SanitizeInput(input);
         const singleCommaSet = new RegExp(/(?<=^[^,]*)\S+, ?(?:\S+(?:,(?: and)? ?)?)+(?=(?:[^,])*$)/gm);
         const doubleCommaSet = new RegExp(/\S+?, ?(?:\S+(?:,( and)? ?)?)+?(?= \S+?,(?:\S,?)+)/gm);
-        const range = new RegExp('\\w*?(?<!' + AK_MATCHER + ') ?(\\w+ - (?:\\w* \\d+\\w+|\\w+ \\d+|\\w+))', 'gim');
+        const range = new RegExp('\\w*?(?<!' + ANY_ALL_CLAUSE + ') ?(\\w+ - (?:\\w* \\d+\\w+|\\w+ \\d+|\\w+))', 'gim');
 
 
 
-        let types = GetClauses(input, MC_MATCHER, E.TYPES);
-        let clauses = GetClauses(input, MC_MATCHER, E.CLAUSES);
+        let types = GetClauses(input, ANY_META, E.TYPES);
+        let clauses = GetClauses(input, ANY_META♦, E.CLAUSES);
         // console.log(input, '\n', types, '\n', clauses, '\n');
 
         let preclauses = new Array<string>();
@@ -177,49 +176,18 @@ export default class Rule extends RRuleSet {
 
 // TODO: implement better validation at the clause level, include validation that dates don't use 05-05-2020 (dash notation) 
 function SanitizeInput(input: string) {
+    //TODO: make sure to use the configured triggerphrase instead of @
+    //TODO: make sure that this replaces up to the last @, e.g. '@every day @every week'
     input = input.replace(/.*@ ?(include)?/i, 'include '); // everything before and including '@' isn't important, default to include
     input = input.replace(/((\[\[?)|(\]\]?))/g, ''); // take care of [[wikilinks]] and [brackets]
     input = input.replace(/(\(|\))/g, ''); // take care of (parenthesis)
 
-    input = input.replace(/ ?mid ?-?day ?/gim, ' noon '); // FUTURE: mid/half could be quantifiers, and fractional intervals were supported
-    input = input.replace(/ ?mid ?-?month ?/gim, ' month on the 15th ');
-    input = input.replace(/ ?hourly ?/gim, ' every hour ');
-    input = input.replace(/ ?daily ?/gim, ' every day ');
-    input = input.replace(/ ?biweekly ?/gim, ' every 2 weeks ');
-    input = input.replace(/ ?weekly ?/gim, ' every week ');
-    input = input.replace(/ ?semi-?monthly ?/gim, ' every month on the 15th ');
-    input = input.replace(/ ?bi-?monthly ?/gim, ' every 2 months ');
-    input = input.replace(/ ?monthly ?/gim, ' every month ');
-    input = input.replace(/ ?(bi|semi)-?annually ?/gim, ' every 6 months ');
-    input = input.replace(/ ?(yearly|annually) ?/gim, ' every year ');
-    input = input.replace(/ ?bi-?ennially ?/gim, ' every 2 years ');
-    input = input.replace(/ ?semi-?decennially ?/gim, ' every 5 years ');
-    input = input.replace(/ ?bi-?decennially ?/gim, ' every 20 years ');
-    input = input.replace(/ ?decennially ?/gim, ' every 10 years ');
-    input = input.replace(/ ?semi-?centennially ?/gim, ' every 50 years ');
-    input = input.replace(/ ?bi-?centennially ?/gim, ' every 200 years ');
-    input = input.replace(/ ?centennially ?/gim, ' every 100 years ');
-    input = input.replace(/ ?millennially ?/gim, ' every 1000 years '); // yes, I like to schedule things 1000 years in advance
-    input = input.replace(/ ?decade ?/gim, ' 10 years ');
-    input = input.replace(/ ?century ?/gim, ' 100 years ');
-    input = input.replace(/ ?millenium ?/gim, ' 1000 years ');
+    SIMPLE_REPLACE.forEach((v) => input = input.replace(...MATCHERS[v]));
 
-    input = input.replace(/ ?(weekday|workday) ?/gim, ' mon,tue,wed,thu,fri ');
-    input = input.replace(/ ?weekend ?/gim, ' sat,sun ');
-
-    input = input.replace(/ (?:a )?couple /gim, ' 2 ');
-    input = input.replace(/ (?:a )?few /gim, ' 3 ');
-    input = input.replace(/ several /gim, ' 4 ');
-    input = input.replace(/ (?:a )?dozen /gim, ' 12 ');
-
-    input = input.replace(/ back ?/gim, ' ago '); // chrono doesn't understand "couple years back" but understands "couple years ago"
-    input = input.replace(/ other /gim, ' 2 '); // 'every other day' doesn't work but 'every 2 day' does
     // IMPORTANT: make sure all other dash replacement happens before these two 
     input = input.replace(/ through /gim, ' - '); // we're using space separated dashes for ranges (it's chrono-required for slash date range parsing)
     input = input.replace(/(?<= ?\w+)(-)(?=\w+ ?)/gim, ' - '); // insert spaces between dashes (mon-fri => mon - fri), this currently voids dash-dates
     input = input.replace(/ but( not)? /gim, ' except ');
-    input = input.replace(/ beginning /gim, ' starting ');
-    input = input.replace(/ (until|till) /gim, ' ending ');
     input = input.replace(/ (?:includ(e|ing)|allow(ing)?) /gim, ' include ');
     input = input.replace(/ (?:exclud(e|ing)|disallow(ing)?) /gim, ' except ');
     input = input.replace(/ between (.*?) and /gi, ' starting $1 ending '); // for cases like '@every day between now and next year'

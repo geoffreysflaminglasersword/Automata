@@ -1,5 +1,17 @@
 <script lang="ts">
-  import { App, Plugin, Scope, settings, onMount, onDestroy, Keys, setContext, Register } from "./common";
+  import {
+    App,
+    Plugin,
+    Scope,
+    CM_Map,
+    settings,
+    onMount,
+    onDestroy,
+    Keys,
+    setContext,
+    Register,
+    isNullOrWhitespace,
+  } from "./common";
   import SuggestionContainer from "./SuggestionContainer.svelte";
   import { regexIndexOf, rxLastWord } from "./Utils";
 
@@ -10,14 +22,22 @@
     change: CodeMirror.EditorChange;
   $: if (!editor || !change) throw new Error("in suggestion: editor and change must always exist");
 
+  let disableTab = {
+    Tab: (cm: CodeMirror.Editor) => {
+      cm.replaceSelection(" ", "end");
+    },
+  };
+
   let [isOpen, chosen, scope] = [false, "", new Scope()];
   setContext(Keys.suggestion, { app, plugin, scope });
 
+  $: insertMod = $settings.insertDatesModifier;
   $: trigger = $settings.autocompleteTriggerPhrase;
   $: matchToTrigger = new RegExp(".*" + trigger + "");
 
   $: cursor = editor.getCursor();
-  $: line = editor.getLine(cursor.line);
+  $: lineNo = cursor.line;
+  $: line = editor.getLine(lineNo);
 
   $: triggerPos = regexIndexOf(line, new RegExp(trigger), 0);
   $: foundTrigger = triggerPos >= 0;
@@ -44,8 +64,19 @@
     cursor = editor.getCursor();
   }
   let select = (event: KeyboardEvent | MouseEvent) => {
-    if (event instanceof KeyboardEvent && event.isComposing) return;
-    close();
+    if (isNullOrWhitespace(chosen)) return;
+    console.log("GERE: ", event);
+    const isKb = event instanceof KeyboardEvent,
+      isM = event instanceof MouseEvent;
+    if (isKb && event.isComposing) return;
+    if ((isM || event.key == "Enter") && event[CM_Map[insertMod]]) {
+      // insert links to dates
+      console.log("here: ", event[CM_Map[insertMod]]);
+      return;
+    }
+
+    let start = regexIndexOf(line, /(?<=\s|@)\w*?$/, 0); //TODO:use triggerphrase instead of @
+    editor.replaceRange(chosen, { line: lineNo, ch: start }, cursor);
   };
   function close(): void {
     (isOpen = false), targetRef.detach();
@@ -53,14 +84,14 @@
 
   let unregister: () => void;
   onMount(() => {
+    editor.addKeyMap(disableTab);
     unregister = Register(
       scope,
       [
         [[], "Enter", select],
         [[], "Tab", select],
         [[], "Escape", close],
-        [["Shift"], "Tab", select],
-        [["Shift"], "Enter", select],
+        [[insertMod], "Enter", select],
       ],
       plugin,
       [
@@ -71,6 +102,7 @@
   });
   onDestroy(() => {
     unregister();
+    editor.removeKeyMap(disableTab);
   });
 </script>
 
