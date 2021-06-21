@@ -2,7 +2,7 @@ import * as DU from 'src/Utils';
 import * as chrono from 'chrono-node';
 import * as moment from 'moment';
 
-import { hasDuplicates, isNullOrWhitespace, zip } from 'src/Utils';
+import { getUniqueArray, hasDuplicates, isNullOrWhitespace, zip } from 'src/Utils';
 
 import { ParsingComponents } from 'chrono-node/dist/results';
 import RRule from 'rrule';
@@ -42,7 +42,8 @@ export const ALT_DATE_QUANTIFIERS = ['hour', 'day', 'week', 'month', 'year'] as 
 export const GENERAL = [...DAYS, ...MONTHS, ...SPECIAL, ...ALT_DATE_QUANTIFIERS] as const;
 
 export const SIMPLE_REPLACE = [...ALL_QUANTIFIERS, ...ALT_CLAUSES, ...RECURRANCES, ...MULTI] as const;
-export const ALL_KEYWORDS = [...ALL_CLAUSES, ...SIMPLE_REPLACE, ...RELATIVE, ...GENERAL] as const;
+const _ALL_KEYWORDS = [...ALL_CLAUSES, ...SIMPLE_REPLACE, ...RELATIVE, ...GENERAL] as const;
+export const ALL_KEYWORDS = getUniqueArray<string>([..._ALL_KEYWORDS]);
 
 
 export const ANY_CLAUSE: string = (() => { let s: string = ''; for (let i of CLAUSES) s += i + '|'; return s.slice(0, -1); })();
@@ -116,11 +117,11 @@ const LikelySemanticOrdering = new Map<ReadonlyArray<string>, Array<string>>(
 );
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 export function GetLikely(input: string): string[] {
-    if (isNullOrWhitespace(input)) { console.log('HERE'); return [...ALL_KEYWORDS]; };
+    if (isNullOrWhitespace(input)) { console.log('HERE'); return ALL_KEYWORDS; };
     console.log('JEFF:', input);
     for (let [key, val] of LikelySemanticOrdering)
         if (key.includes(input)) return val;
-    return [...ALL_KEYWORDS];
+    return ALL_KEYWORDS;
 }
 
 

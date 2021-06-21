@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Editor } from "obsidian";
+
   import {
     App,
     Plugin,
@@ -16,12 +18,9 @@
   import SuggestionContainer from "./SuggestionContainer.svelte";
   import { regexIndexOf, rxLastWordOrSpace } from "./Utils";
 
-  export let app: App,
-    plugin: Plugin,
-    targetRef: HTMLElement,
-    editor: CodeMirror.Editor,
-    change: CodeMirror.EditorChange;
-  $: if (!editor || !change) throw new Error("in suggestion: editor and change must always exist");
+  export let app: App, plugin: Plugin, targetRef: HTMLElement, editor: CodeMirror.Editor;
+  let change: CodeMirror.EditorChange;
+  $: if (!editor) throw new Error("in suggestion: editor must always exist");
 
   let [isOpen, chosen, scope] = [false, "", new Scope()];
   setContext(Keys.suggestion, { app, plugin, scope, editor });
@@ -36,7 +35,7 @@
 
   $: triggerPos = regexIndexOf(line, new RegExp(trigger), 0);
   $: foundTrigger = triggerPos >= 0;
-  $: isSingleCursor = change.text.length === 1;
+  $: isSingleCursor = change?.text.length == 1;
   $: shouldOpen = isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
   $: shouldClose = !foundTrigger || cursor.ch <= triggerPos;
 
@@ -49,12 +48,14 @@
   else if (shouldOpen) isOpen = true;
   $: if (!shouldClose && shouldOpen) editor.addWidget(cursor, targetRef, true);
 
-  function update(c: CodeMirror.Editor, cc: CodeMirror.EditorChange) {
-    if (editor !== c) close();
-    [editor, change] = [c, cc];
+  function update(cm: CodeMirror.Editor, cc: CodeMirror.EditorChange) {
+    if (editor !== cm) close();
+    [editor, change] = [cm, cc];
   }
 
   function onCursorMove(cm: CodeMirror.Editor) {
+    if (editor !== cm) close();
+
     cursor = editor.getCursor();
   }
 
@@ -72,15 +73,19 @@
       }
     } else {
       if (!blank) {
-        let start = regexIndexOf(line, rxLastWordOrSpace, 0);
-        editor.replaceRange(chosen, { line: lineNo, ch: start }, cursor);
+        //BUG: currently it seems that when clicking a word and tab replacing, it only replaces the end of the word
+        let { start: start, end: end, string: token } = editor.getTokenAt(cursor);
+        let idx = token.indexOf(trigger);
+        console.log(`start`, start, idx);
+        start += idx == -1 ? idx + trigger.length : 0;
+        console.log(`start`, start);
+        console.log(editor.getLineTokens(lineNo));
+        editor.replaceRange(chosen, { line: lineNo, ch: start }, { line: lineNo, ch: end });
+        console.log(editor.getLineTokens(lineNo));
       }
       if (isConfirmation) {
-        console.log("%c" + line, "color:green");
-        let t = new Rule(line);
-        console.log("End Result: ", t);
-        let count = 0;
-        for (let i of t.all()) console.log("%c result: " + i.toUTCString() + "   " + i, "color:orange");
+        let t = new Rule(editor.getLine(lineNo));
+        t.print();
       }
     }
   };

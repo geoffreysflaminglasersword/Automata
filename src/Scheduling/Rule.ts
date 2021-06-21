@@ -217,6 +217,8 @@ function SanitizeRule(input: string) {
     input = input.replace(/ quarter (?=on the ?\w* first)/gim, ' January,April,July,October ');
     input = input.replace(/ quarter (?=on the ?\w* last)/gim, ' March,June,September,December '); // otherwise the ending clause becomes e.g. 'ending next March,June...'
     input = input.replace(/ quarter ?/gim, ' January,April,July,October on the 1st');
+
+    input = input.replace(/(\d\d\d\d)(?!\w)/gmi, '$1CE'); // default any 4 digit year to CE (not an intelligent way to solve the problem with chrono treating years as times, but in this context it should be fine)
     /* 
     note: right now that example is technically broken, the end date will be the last day of the **first month** of the next quarter
     this isn't something I care to fix, because a different end date like 'next april' works just as well, and the fix

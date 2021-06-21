@@ -1,21 +1,28 @@
 <script lang="ts">
   import SuggestionItem from "./SuggestionItem.svelte";
-  import { wrap } from "./Utils";
-  import { onMount, onDestroy, getContext, Keys, SuggestionCtx, Register, isNullOrWhitespace } from "./common";
-  import { matchSorter } from "match-sorter";
+  import { wrap, getUniqueArray } from "./Utils";
   import {
-    GetLikely,
-    ALL_KEYWORDS,
-    ALL_QUANTIFIERS,
-    ALL_CLAUSES,
-    RELATIVE,
-    ALT_CLAUSES,
-    RECURRANCES,
-  } from "./Scheduling/Clause";
+    settings,
+    onMount,
+    onDestroy,
+    getContext,
+    Keys,
+    SuggestionCtx,
+    Register,
+    isNullOrWhitespace,
+  } from "./common";
+  import { matchSorter } from "match-sorter";
+  import { GetLikely } from "./Scheduling/Clause";
 
   export let input: string, current: string;
   $: likely = GetLikely(input); //TODO: add multi-word suggestions and make top 2 results based on MRU
-  $: suggestions = matchSorter(likely, isNullOrWhitespace(input) ? "" : input).slice(0, 10); //getDateSuggestions(input);
+  $: sortKey = isNullOrWhitespace(input) ? "" : input;
+  $: firstChar = sortKey ? sortKey.charAt(0) : "";
+  // sometimes matchSorter only returns 1 or a few matches, so we fill up the remaining with matches based on the first char (this isn't efficient but good enough for now considering the small dataset)
+  $: suggestions = matchSorter(likely, sortKey);
+  $: if (suggestions && sortKey) suggestions = suggestions.slice(0, 10);
+  $: if (suggestions.length < 5)
+    suggestions = getUniqueArray([...suggestions, ...matchSorter(likely, firstChar)]).slice(0, 10);
   $: current = suggestions[current_index];
 
   let { app, plugin, scope, editor } = getContext<SuggestionCtx>(Keys.suggestion);
@@ -50,32 +57,6 @@
       return false;
     }
   };
-
-  function getDateSuggestions(inputStr: string): string[] {
-    if (inputStr.match(/(next|last|this)/i)) {
-      const reference = inputStr.match(/(next|last|this)/i)[1];
-      return ["week", "month", "year", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        .map((val) => `${reference} ${val}`)
-        .filter((items) => items.toLowerCase().startsWith(inputStr));
-    }
-
-    const relativeDate = inputStr.match(/^in ([+-]?\d+)/i) || inputStr.match(/^([+-]?\d+)/i);
-    if (relativeDate) {
-      const timeDelta = relativeDate[1];
-      return [
-        `in ${timeDelta} minutes`,
-        `in ${timeDelta} hours`,
-        `in ${timeDelta} days`,
-        `in ${timeDelta} weeks`,
-        `in ${timeDelta} months`,
-        `${timeDelta} days ago`,
-        `${timeDelta} weeks ago`,
-        `${timeDelta} months ago`,
-      ].filter((items) => items.toLowerCase().startsWith(inputStr));
-    }
-
-    return ["Today", "Yesterday", "Tomorrow"].filter((items) => items.toLowerCase().startsWith(inputStr));
-  }
 </script>
 
 <div class="suggestion">
@@ -90,7 +71,8 @@
 
 <div class="prompt-instructions">
   <div class="prompt-instruction">
-    <span class="prompt-instruction-command">Shift</span>
-    <span>Keep text as alias</span>
+    <span>Hold</span>
+    <span class="prompt-instruction-command">{$settings.insertDatesModifier}</span>
+    <span>to insert here...</span>
   </div>
 </div>

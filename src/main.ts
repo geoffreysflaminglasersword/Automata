@@ -87,20 +87,19 @@ export default class Chronicler extends Plugin {
 
 		// this.tryToSetupAutosuggest(); 
 
-		this.unregister = Register(undefined, undefined, this, [['change', this.addAutosuggest.bind(this)]]);
+		this.unregister = Register(undefined, undefined, this, [['cursorActivity', this.addAutosuggest.bind(this)]]);
 		this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
 	}
 
-	addAutosuggest(c: CodeMirror.Editor, cc: CodeMirror.EditorChange) {
-		if (!c || !cc) return;
+	addAutosuggest(cm: CodeMirror.Editor) {
+		if (!cm) return;
 		this.autosuggest = new Suggestion({
 			target: this.suggestEl,
 			props: {
 				plugin: this,
 				app: this.app,
 				targetRef: this.suggestEl,
-				editor: c,
-				change: cc
+				editor: cm
 			}
 		});
 		this.unregister();
@@ -245,19 +244,24 @@ class ChroniclerModal extends Modal {
 		let start = 10;
 		let examples = EX.shouldWork.filter((_, idx) => { return idx >= start && idx < start + window; }); // grabbing only 10 at a time
 
-		for (let i of examples) {
+		// for (let i of examples) {
 
-			console.log('%c' + i, 'color:green');
-			let t = new Rule(i, this.obsidian);
-			console.log("End Result: ", t);
-			let count = 0;
-			for (let i of t.all()) console.log("%c result: " + i.toUTCString() + "   " + i, 'color:orange');
+		// 	console.log('%c' + i, 'color:green');
+		// 	let t = new Rule(i, this.obsidian);
+		// 	console.log("End Result: ", t);
+		// 	let count = 0;
+		// 	for (let i of t.all()) console.log("%c result: " + i.toUTCString() + "   " + i, 'color:orange');
 
-			// let arr = GetClauses(i, C_MATCHER, E.CLAUSES);
-			// console.log('\n\n\n', arr);
-			// if (arr.length) for (let a of arr) (arr.indexOf(a) == 0) ? print('every ' + a) : print(a);
-			// else print('every ' + i.replace(/\@/, ''));
-		}
+		// 	// let arr = GetClauses(i, C_MATCHER, E.CLAUSES);
+		// 	// console.log('\n\n\n', arr);
+		// 	// if (arr.length) for (let a of arr) (arr.indexOf(a) == 0) ? print('every ' + a) : print(a);
+		// 	// else print('every ' + i.replace(/\@/, ''));
+		// }
+
+		console.log(chrono.parseDate('2024'));
+		console.log(chrono.parseDate('2024CE'));
+		console.log(chrono.parseDate('2024BCE'));
+		console.log(chrono.parseDate('100BC'));
 
 
 

@@ -24,6 +24,9 @@ export function wrap(num: number, max: number): number {
 export function hasDuplicates<T>(arr: Array<T>) {
     return new Set(arr).size !== arr.length;
 }
+export function getUniqueArray<T>(a: Array<T>) {
+    return Array.from(new Set(a));
+}
 export function isNullOrWhitespace(input) {
 
     if (typeof input === 'undefined' || input == null) return true;

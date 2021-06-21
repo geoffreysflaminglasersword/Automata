@@ -18,12 +18,8 @@
   import SuggestionContainer from "./SuggestionContainer.svelte";
   import { regexIndexOf, rxLastWordOrSpace } from "./Utils";
 
-  export let app: App,
-    plugin: Plugin,
-    targetRef: HTMLElement,
-    editor: CodeMirror.Editor,
-    change: CodeMirror.EditorChange;
-  $: if (!editor || !change) throw new Error("in suggestion: editor and change must always exist");
+  export let app: App, plugin: Plugin, targetRef: HTMLElement, editor: CodeMirror.Editor;
+  $: if (!editor) throw new Error("in suggestion: editor must always exist");
 
   let [isOpen, chosen, scope] = [false, "", new Scope()];
   setContext(Keys.suggestion, { app, plugin, scope, editor });
@@ -38,7 +34,7 @@
 
   $: triggerPos = regexIndexOf(line, new RegExp(trigger), 0);
   $: foundTrigger = triggerPos >= 0;
-  $: isSingleCursor = change.text.length === 1;
+  let isSingleCursor = true;
   $: shouldOpen = isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
   $: shouldClose = !foundTrigger || cursor.ch <= triggerPos;
 
@@ -53,7 +49,9 @@
 
   function update(cm: CodeMirror.Editor, cc: CodeMirror.EditorChange) {
     if (editor !== cm) close();
+    let change: CodeMirror.EditorChange;
     [editor, change] = [cm, cc];
+    isSingleCursor = change.text.length == 1;
   }
 
   function onCursorMove(cm: CodeMirror.Editor) {
@@ -75,13 +73,14 @@
         // insert links to dates
       }
     } else {
-      if (!blank) {
-        let start = regexIndexOf(line, rxLastWordOrSpace, 0);
-        editor.replaceRange(chosen, { line: lineNo, ch: start }, cursor);
-      }
       if (isConfirmation) {
         let t = new Rule(editor.getLine(lineNo));
         t.print();
+      } else if (!blank) {
+        let { start: start, end: end, string: token } = editor.getTokenAt(cursor);
+        let idx = token.indexOf(trigger);
+        start += idx == -1 ? 0 : idx + trigger.length;
+        editor.replaceRange(chosen, { line: lineNo, ch: start }, { line: lineNo, ch: end });
       }
     }
   };
