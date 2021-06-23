@@ -4,6 +4,7 @@ import * as EX from './Scheduling/examples';
 import * as chrono from 'chrono-node';
 
 import { ChroniclerSettingTab, ChroniclerSettings, DEFAULT_SETTINGS } from './settings';
+import { FuzzySuggestModal, TFile } from "obsidian";
 import { ItemView, Modal, Obsidian, Plugin, Register, Vault, WorkspaceLeaf } from './common';
 import { RRule, Weekday } from 'rrule';
 
@@ -68,13 +69,13 @@ export default class Chronicler extends Plugin {
 			});
 
 			this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-				console.log('click', evt);
-				console.log('click', evt);
-				console.log('click', evt);
-				console.log('click', evt);
-				console.log('click', evt);
-				console.log('click', evt);
-				console.log('click', evt);
+				// console.log('click', evt);
+				// console.log('click', evt);
+				// console.log('click', evt);
+				// console.log('click', evt);
+				// console.log('click', evt);
+				// console.log('click', evt);
+				// console.log('click', evt);
 			});
 
 			// this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
@@ -161,46 +162,25 @@ export default class Chronicler extends Plugin {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // import { DateTime, Duration } from "luxon";
 
-
-
-
-
-
-
-class ChroniclerModal extends Modal {
+class ChroniclerModal extends FuzzySuggestModal<string> {
+	getItems(): string[] {
+		return ['Jeff', 'is', 'my', 'hero'];
+	}
+	getItemText(item: string): string {
+		return item;
+	}
+	onChooseItem(item: string, evt: MouseEvent | KeyboardEvent): void {
+		console.log(`item`, item);
+	}
 	obsidian: Obsidian;
 	// ac: SvelteComponent;
 
 	constructor(obsidian: Obsidian) {
 		super(obsidian.app);
 		this.obsidian = obsidian;
+		obsidian.app.metadataCache.getFileCache(new TFile()).blocks;
 	}
 
 	async onOpen() {
@@ -257,11 +237,6 @@ class ChroniclerModal extends Modal {
 		// 	// if (arr.length) for (let a of arr) (arr.indexOf(a) == 0) ? print('every ' + a) : print(a);
 		// 	// else print('every ' + i.replace(/\@/, ''));
 		// }
-
-		console.log(chrono.parseDate('2024'));
-		console.log(chrono.parseDate('2024CE'));
-		console.log(chrono.parseDate('2024BCE'));
-		console.log(chrono.parseDate('100BC'));
 
 
 
@@ -321,6 +296,7 @@ class ChroniclerModal extends Modal {
 			// contentEl.appendText();
 		}
 	}
+
 
 
 

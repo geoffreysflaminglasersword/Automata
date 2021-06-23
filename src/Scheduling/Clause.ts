@@ -117,8 +117,7 @@ const LikelySemanticOrdering = new Map<ReadonlyArray<string>, Array<string>>(
 );
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 export function GetLikely(input: string): string[] {
-    if (isNullOrWhitespace(input)) { console.log('HERE'); return ALL_KEYWORDS; };
-    console.log('JEFF:', input);
+    if (isNullOrWhitespace(input)) return ALL_KEYWORDS;
     for (let [key, val] of LikelySemanticOrdering)
         if (key.includes(input)) return val;
     return ALL_KEYWORDS;
@@ -251,5 +250,3 @@ export class MetaClause extends Clause {
     public setClause(value: string): void { throw new Error("Called MetaClause.setClause"); } // doing this for now to make sure nothing accidentally does holiday preprocessing
 
 }
-
-

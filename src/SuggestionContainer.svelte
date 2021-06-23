@@ -20,9 +20,9 @@
   $: firstChar = sortKey ? sortKey.charAt(0) : "";
   // sometimes matchSorter only returns 1 or a few matches, so we fill up the remaining with matches based on the first char (this isn't efficient but good enough for now considering the small dataset)
   $: suggestions = matchSorter(likely, sortKey);
-  $: if (suggestions && sortKey) suggestions = suggestions.slice(0, 10);
-  $: if (suggestions.length < 5)
-    suggestions = getUniqueArray([...suggestions, ...matchSorter(likely, firstChar)]).slice(0, 10);
+  $: if (suggestions && sortKey) suggestions = suggestions.slice(0, 7);
+  $: if (suggestions.length < 3)
+    suggestions = getUniqueArray([...suggestions, ...matchSorter(likely, firstChar)]).slice(0, 7);
   $: current = suggestions[current_index];
 
   let { app, plugin, scope, editor } = getContext<SuggestionCtx>(Keys.suggestion);

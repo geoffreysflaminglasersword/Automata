@@ -28,5 +28,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/Suggestion.js"]
+  "include": ["**/*.ts", "**/*.tsx"]
 }

@@ -45,6 +45,25 @@ export function* zip<T extends Array<any>>(...toZip: MakeIterable<T>): Generator
     }
 }
 
+interface ConstructorOf<T> {
+    new(...args: ReadonlyArray<never>): T;
+}
+
+export function If<T>(thing: T) {
+    const actions = {
+        Is<U extends T>(type: ConstructorOf<U>) {
+            console.log('In is');
+            return {
+                then(fn: (_: U) => void) {
+                    if (thing instanceof type) { fn(thing); return null; }
+                    return actions;
+                }
+            };
+        }
+    };
+    return actions;
+}
+
 
 
 declare global {
@@ -80,7 +99,7 @@ export function Register(
     plugin?: Plugin,
     evs?: (ObsidianEvent | Function)[][]) {
     if ((scope ? !keyEvs : keyEvs) || (plugin ? !evs : evs)) {
-        throw new Error('In Utils::Register');
+        throw new Error('In Utils::Register: must have either or both of scope and keyEvs, and plugin and evs');
     };
     return register(
         scope,
@@ -93,7 +112,32 @@ export function Register(
 
 
 
+// https://blog.logrocket.com/a-practical-guide-to-typescript-decorators/
+// "experimentalDecorators": true
 
+// class Rocket {
+//     @measure
+//     launch() {
+//       console.log("Launching in 3... 2... 1... 🚀");
+//     }
+//   }
 
+// import { performance } from "perf_hooks";
 
+// const measure = (
+//   target: Object,
+//   propertyKey: string,
+//   descriptor: PropertyDescriptor
+// ) => {
+//   const originalMethod = descriptor.value;
 
+//   descriptor.value = function (...args:any[]) {
+//     const start = performance.now();
+//     const result = originalMethod.apply(this, args);
+//     const finish = performance.now();
+//     console.log(`Execution time: ${finish - start} milliseconds`);
+//     return result;
+//   };
+
+//   return descriptor;
+// };

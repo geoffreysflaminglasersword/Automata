@@ -11,7 +11,7 @@
     current_index = index;
     hovered = true;
   }}
-  on:mouuseleave={() => (hovered = false)}
+  on:mouseleave={() => (hovered = false)}
   class="suggestion-item {current_index === index ? 'is-selected' : ''}"
   bind:this={div}
 >

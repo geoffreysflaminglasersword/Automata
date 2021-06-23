@@ -16,14 +16,14 @@ import {
     WorkspaceLeaf,
 } from "obsidian";
 import { ChroniclerSettings, settings } from "./settings";
-import { Register, getUniqueArray, isNullOrWhitespace, zip } from "./Utils";
+import { If, Register, getUniqueArray, isNullOrWhitespace, zip } from "./Utils";
 import { get, writable } from "svelte/store";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
 
 export {
     onMount, onDestroy, writable, getContext, setContext, settings,
     App, FileSystemAdapter, Plugin, Scope, Vault, Modal, Notice, PluginSettingTab,
-    ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace, get, getUniqueArray,
+    ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace, get, getUniqueArray, If,
 };
 export type {
     PluginManifest, KeymapEventHandler, Modifier,
@@ -43,6 +43,9 @@ export enum Keys {
     suggestion, global
 }
 
+export const globalContext = writable({
+    taskIndex: 0,
+});
 
 export class Obsidian {
     basePath: string;
