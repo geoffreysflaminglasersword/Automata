@@ -6,19 +6,23 @@
   $: if (!editor) throw new Error("in suggestion: editor must always exist");
 
   // Settings
-  $: insertMod = $settings.insertDatesModifier;
-  $: trigger = $settings.autocompleteTriggerPhrase;
+  $: ({
+    insertDatesModifier: insertMod,
+    autocompleteTriggerPhrase: trigger,
+    useHeadingAsTitle: useHeading,
+    includeSubsectionsTrigger,
+  } = $settings);
 
   // Declarations
-  let active: TFile, finalized: string;
-  let [isOpen, isSingleCursor, chosen, scope, blockId] = [false, true, "", new Scope(), ""];
+  let active: TFile;
+  let [isOpen, isSingleCursor, chosen, scope] = [false, true, "", new Scope()];
   setContext(Keys.suggestion, { app, plugin, scope, editor });
 
   // Reactive Declarations
   $: cursor = editor.getCursor();
   $: lineNo = cursor.line;
   $: line = editor.getLine(lineNo);
-  $: triggerPos = regexIndexOf(line, new RegExp(trigger), 0);
+  $: triggerPos = regexIndexOf(line, /(@(?=@*\S))|@$/, 0);
   $: foundTrigger = triggerPos >= 0;
   $: shouldOpen = isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
   $: shouldClose = !foundTrigger || cursor.ch <= triggerPos;
@@ -86,79 +90,112 @@
 
   function autoCompleteReplace() {
     let { start, end, string: token } = editor.getTokenAt(cursor);
-    let idx = token.indexOf(trigger);
+    let idx = token.lastIndexOf(trigger);
     start += idx == -1 ? 0 : idx + trigger.length;
     editor.replaceRange(chosen, { line: lineNo, ch: start }, { line: lineNo, ch: end });
   }
 
-  function createTask() {
-    let current = editor.getLine(lineNo).replace(/ \^.*/gm, ""); // FUTURE: this just removes the existing block reference, we should probably update instead
-    blockId = "task-" + $globalContext.taskIndex;
-    $globalContext.taskIndex += 1;
-    let s = regexIndexOf(current, /(?:.(?!@))+$/m, 0);
-    editor.replaceRange(" ^" + blockId, { line: lineNo, ch: s }, { line: lineNo, ch: Infinity });
-
-    let t = new Rule(current);
-    t.print();
-    finalized = t.originalString;
-    app.metadataCache.on("changed", finish); // have to wait for file indexing to get updated sections
+  function fromLoc(input: Loc) {
+    return <CodeMirror.Position>{ line: input.line, ch: input.col };
   }
 
-  async function finish(file: TFile) {
-    let text = await app.vault.read(active);
+  async function createTask() {
+    $globalContext.taskIndex += 1;
+    let blockId = "task-" + $globalContext.taskIndex;
+    let includeSubsections = !!line.match(includeSubsectionsTrigger)?.length;
+    let headingSearchLevel = line.match(/#(?=#*@)/g)?.length;
+    let cleanMarkDownLine = line.match(/(?<!(?:@|\^).*)([^@^\n]+)\s/m)[0]; // FUTURE: this removes existing block references, we should probably update instead
+    let cleanLineNoHash = cleanMarkDownLine.replace(/#/gm, "").trim();
+    editor.replaceRange(cleanMarkDownLine + " ^" + blockId, { line: lineNo, ch: 0 }, { line: lineNo, ch: Infinity });
 
-    let { blocks, sections } = app.metadataCache.getFileCache(active);
-    let idx: number;
-    console.log(blocks, sections, blockId);
-    let { position, type, id } = sections.find((v, i) => {
-      idx = i;
-      return v.id == blockId;
-    });
+    let t = new Rule(line);
+    t.print();
 
-    let start = position.start.offset,
-      end = position.end.offset;
-    let getTitleContent = (start: number, end: number) =>
-      text.slice(start, end).replace(/(?:#+\s)?\s?(.*) \^.*/gm, "$1");
-    let titleContent: string;
+    let titleContent: string, taskContent: string;
+    let sections = app.metadataCache.getFileCache(active).sections;
+    let section = getSectionFromPos(cursor, sections),
+      { position, id, type } = section,
+      start = fromLoc(position.start),
+      end = fromLoc(position.end);
 
-    if (type != "heading") {
-      sections.find((s, i) => {
-        console.log("i:", i);
-        if (i == idx) return true;
-        if (s.type == "heading") titleContent = getTitleContent(s.position.start.offset, s.position.end.offset);
-        console.log("i:", i, s.type, titleContent);
-        return false;
-      });
-    } else titleContent = getTitleContent(start, end);
-    console.log(titleContent);
+    if (includeSubsections) end = getSubSectionsEnd(section, sections);
 
-    for (idx++; idx < sections.length; idx++) {
-      console.log("HERE 1");
+    taskContent = includeSubsections
+      ? editor.getRange(start, end).replace(/\^\S+\s?/gm, "")
+      : "![[" + active.basename + "#^" + blockId + "]]";
 
-      if (!isEqualOrGreater(sections[idx].type, type)) continue;
-      end = sections[idx].position.start.offset;
-      break;
-    }
-    let taskContent = text.slice(start, end).replace(/\^\S+\s/gm, "");
-    console.log(titleContent, "\n\n", taskContent);
-    if (!titleContent || titleContent == taskContent) titleContent = finalized;
+    if (useHeading) {
+      ({ start, end } = getHeadingPos(headingSearchLevel, section, sections));
+      titleContent = editor.getRange(start, end);
+    } else titleContent = cleanLineNoHash;
+    titleContent = titleContent
+      .replace(/^#+\s/, "")
+      .replace(/\s?\^\S+/, "")
+      .replace(/@+.*[^\n]/, "");
     console.log(titleContent);
     console.log(taskContent);
-    app.metadataCache.off("changed", finish);
+  }
+
+  let matchHeadingHashes = /(?<=^#*?)#(?=#*\s)/g;
+  let sectionStart = (section: SectionCache) => editor.getLine(section.position.start.line);
+
+  function getHeadingPos(level: number, section: SectionCache, source: TFile | SectionCache[]) {
+    let res: SectionCache = section;
+    let sections = source instanceof TFile ? app.metadataCache.getFileCache(source).sections : source;
+    for (let sec of sections) {
+      if (sec.position.start.offset > section.position.start.offset) break;
+      else if (sec.type == "heading") {
+        if (level) {
+          let currentLevel = sectionStart(sec).match(matchHeadingHashes)?.length;
+          if (currentLevel == level) res = sec;
+        } else res = sec;
+      }
+    }
+
+    return { start: fromLoc(res.position.start), end: fromLoc(res.position.end) };
+  }
+
+  function getSubSectionsEnd(section: SectionCache, source: TFile | SectionCache[]) {
+    let sections = source instanceof TFile ? app.metadataCache.getFileCache(source).sections : source;
+    let idx = sections.indexOf(section) + 2;
+    let end = fromLoc(section.position.end);
+    for (; idx < sections.length; idx++) {
+      if (isGreaterSection(section, sections[idx])) continue;
+      console.log(idx, section, sections[idx]);
+      end = fromLoc(sections[idx].position.start);
+      break;
+    }
+    return end;
+  }
+
+  function getSectionFromPos(position: CodeMirror.Position, source: TFile | SectionCache[]) {
+    let sections = source instanceof TFile ? app.metadataCache.getFileCache(source).sections : source;
+
+    for (let sec of sections) {
+      let { position: pos, type, id } = sec;
+      if (pos.start.line <= position.line && pos.end.line >= position.line) return sec;
+    }
+    throw new Error("in getSectionFromPos: tried to get section at invalid position");
+    return null;
   }
 
   type SectionType = "list" | "code" | "paragraph" | "heading";
 
-  function isEqualOrGreater(type: string, type2: string) {
-    switch (<SectionType>type) {
+  function isGreaterSection(left: SectionCache, right: SectionCache) {
+    let t1: SectionType = <SectionType>left.type;
+    let t2: SectionType = <SectionType>right.type;
+    let L1 = sectionStart(left).match(matchHeadingHashes)?.length,
+      L2 = sectionStart(right).match(matchHeadingHashes)?.length;
+
+    switch (t1) {
       case "heading":
-        return true;
+        return t2 == "heading" ? L1 < L2 : true; // lower number of hashes means higher level
       default:
-        return type == type2;
+        return t1 == t2;
     }
   }
 
-  import { BlockCache, Editor, SectionCache, TFile, Workspace } from "obsidian";
+  import { BlockCache, CacheItem, Editor, Pos, SectionCache, TFile, Workspace, Loc } from "obsidian";
 
   import {
     App,
@@ -175,12 +212,14 @@
     globalContext,
     get,
   } from "./common";
+  import FlatPickr from "./FlatPickr.svelte";
   import Rule from "./Scheduling/Rule";
   import SuggestionContainer from "./SuggestionContainer.svelte";
   import { regexIndexOf, rxLastWordOrSpace } from "./Utils";
 </script>
 
 {#if isOpen}
+  <FlatPickr container={targetRef} />
   <SuggestionContainer on:click={select} bind:current={chosen} input={currentWord} />
   <!-- <div>
     {lineWOTrigger} , {currentWord}

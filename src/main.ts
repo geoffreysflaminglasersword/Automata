@@ -9,6 +9,7 @@ import { ItemView, Modal, Obsidian, Plugin, Register, Vault, WorkspaceLeaf } fro
 import { RRule, Weekday } from 'rrule';
 
 import { DiceRoller } from "./reactTest";
+import Like from './FlatPickr.svelte';
 import React from "react";
 import ReactDOM from "react-dom";
 import Rule from "./Scheduling/Rule";
@@ -164,7 +165,9 @@ export default class Chronicler extends Plugin {
 
 // import { DateTime, Duration } from "luxon";
 
-class ChroniclerModal extends FuzzySuggestModal<string> {
+
+class ChroniclerModal/*  extends FuzzySuggestModal<string>  */ extends Modal {
+	like: Like;
 	getItems(): string[] {
 		return ['Jeff', 'is', 'my', 'hero'];
 	}
@@ -180,12 +183,14 @@ class ChroniclerModal extends FuzzySuggestModal<string> {
 	constructor(obsidian: Obsidian) {
 		super(obsidian.app);
 		this.obsidian = obsidian;
-		obsidian.app.metadataCache.getFileCache(new TFile()).blocks;
 	}
 
 	async onOpen() {
 
-		let { contentEl } = this;
+		let { contentEl, containerEl } = this;
+		let like = new Like({ target: contentEl });
+
+
 		// this.ac = new autocomplete({ target: this.contentEl });
 
 		// ReactDOM.render(React.createElement(DiceRoller), (this as any).contentEl);

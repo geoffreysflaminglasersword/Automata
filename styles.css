@@ -1,5 +1,11 @@
 /* Sets all the text color to red! */
 
+
+/* @import 'flatpickr/dist/flatpickr.css'; */
+
+
+/* @import 'flatpickr/dist/themes/dark.css'; */
+
 body {
     /* color: red; */
 }
@@ -10,4 +16,8 @@ body {
 
 .DiceRoller__container input {
     width: 60px;
+}
+
+.flatpickr-calendar {
+    margin-top: -50px;
 }

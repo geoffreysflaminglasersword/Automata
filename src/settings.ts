@@ -10,7 +10,9 @@ export interface ChroniclerSettings {
     weekStart: Weekday;
     defaultMaxEvents: number;
     autocompleteTriggerPhrase: string;
+    includeSubsectionsTrigger: string;
     insertDatesModifier: Exclude<Modifier, 'Mod'>;
+    useHeadingAsTitle: boolean;
 }
 
 export const DEFAULT_SETTINGS: ChroniclerSettings = {
@@ -19,7 +21,9 @@ export const DEFAULT_SETTINGS: ChroniclerSettings = {
     weekStart: RRule.SU,
     defaultMaxEvents: 8,
     autocompleteTriggerPhrase: '@',
+    includeSubsectionsTrigger: '@@',
     insertDatesModifier: 'Shift',
+    useHeadingAsTitle: true,
 };
 
 export const settings = writable(DEFAULT_SETTINGS);

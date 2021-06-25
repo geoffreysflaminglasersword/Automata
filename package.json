@@ -16,6 +16,7 @@
         "@rollup/plugin-commonjs": "^18.0.0",
         "@rollup/plugin-node-resolve": "^11.2.1",
         "@rollup/plugin-typescript": "^8.2.1",
+        "@types/flatpickr": "^3.1.2",
         "@types/match-sorter": "^6.0.0",
         "@types/moment": "^2.13.0",
         "@types/react": "^17.0.5",
@@ -39,12 +40,15 @@
         "@types/moment-range": "^4.0.0",
         "@types/react-transition-group": "^4.4.1",
         "chrono-node": "^2.2.7",
+        "flatpickr": "^4.6.9",
         "match-sorter": "^6.3.0",
         "moment-range": "^4.0.2",
         "obsidian-utils": "^0.10.0",
         "react-dom": "^17.0.2",
         "react-is": "^17.0.2",
+        "react-multi-date-picker": "^2.9.8",
         "react-native": "^0.64.1",
+        "rollup-plugin-css-only": "^3.1.0",
         "rrule": "^2.6.8",
         "svelte-preprocess": "^4.7.3"
     }
