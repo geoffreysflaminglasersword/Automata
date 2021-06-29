@@ -1,11 +1,35 @@
 import { KEY, ObsidianEvent, Plugin, Scope, KeymapEventListener, Modifier } from './common';
 import { MONTHS } from './Scheduling/Clause';
+import flatpickr from "flatpickr";
+import * as RX from 'Regex';
+import { Subscriber, Unsubscriber, Updater, Writable } from "svelte/store";
+import { BlockCache, CacheItem, Editor, Pos, SectionCache, TFile, Workspace, Loc } from "obsidian";
 
-export const rxLastWordOrSpace = /(?:(?<=(?:\s|\W)?)(\w+?)|(\s))?$/; // if last char is space, matches only the space
-export function regexIndexOf(string: string, regex: RegExp, startpos: number) {
-    var indexOf = string.substring(startpos || 0).search(regex);
-    return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
-}
+
+
+type SectionType = "list" | "code" | "paragraph" | "heading";
+export type Options = flatpickr.Options.Options;
+export type Instantce = flatpickr.Instance;
+
+export type PropType<T, P extends keyof T> = T[P];
+export type ExtractWritable<T> = T extends Writable<infer U> ? U : never;
+export type FilterKeys<T, Extended> = { [K in keyof T]-?: T[K] extends Extended ? K : never }[keyof T];
+
+type FUpdate = { update: (u: Updater<any>) => void; };
+export type Invalidator<T> = (value?: T) => void;
+type FSubscribe = { subscribe: (u: Subscriber<any>, i?: Invalidator<any>) => Unsubscriber; };
+
+export type UpdatableKeys<T> = FilterKeys<T, FUpdate>;
+export type SubscribableKeys<T> = FilterKeys<T, FSubscribe>;
+
+type Able<T> = UpdatableKeys<T> | SubscribableKeys<T>;
+export type MemberStoreType<T extends V, U, V extends Able<U> = UpdatableKeys<U>> = ExtractWritable<PropType<U, T>>;
+
+export type WritablePropertize<T> = {
+    [Prop in keyof T as `S${Capitalize<string & Prop>}`]: Writable<T[Prop]>;
+};
+
+
 
 
 export function nth(n: number) { return String(n) + (['', 'st', 'nd', 'rd'][n / 10 % 10 ^ 1 && n % 10] || 'th'); }
@@ -27,7 +51,7 @@ export function hasDuplicates<T>(arr: Array<T>) {
 export function getUniqueArray<T>(a: Array<T>) {
     return Array.from(new Set(a));
 }
-export function isNullOrWhitespace(input) {
+export function isNullOrWhitespace(input: string) {
 
     if (typeof input === 'undefined' || input == null) return true;
 
@@ -77,6 +101,10 @@ Function.prototype.multi = function <T extends any[]>(...args: T) {
 };
 
 
+
+
+
+
 interface KeyEventRegistrant { mods: Modifier[]; key: KEY; func: KeymapEventListener; }
 interface EventRegistrant { ev: string; func: any; }
 
@@ -99,6 +127,7 @@ export function Register(
     plugin?: Plugin,
     evs?: (ObsidianEvent | Function)[][]) {
     if ((scope ? !keyEvs : keyEvs) || (plugin ? !evs : evs)) {
+        console.log(`scope,keyEvs,plugin,evs`, scope, keyEvs, plugin, evs);
         throw new Error('In Utils::Register: must have either or both of scope and keyEvs, and plugin and evs');
     };
     return register(
@@ -108,6 +137,98 @@ export function Register(
         evs?.map((v) => { return { ev: v[0] as ObsidianEvent, func: v[1] }; })
     );
 }
+
+export function fromLoc(input: Loc) {
+    return <CodeMirror.Position>{ line: input.line, ch: input.col };
+}
+
+export class SectionUtils {
+    cm: CodeMirror.Editor;
+    sections: SectionCache[];
+    constructor(cm: CodeMirror.Editor, sections?: SectionCache[]) {
+        this.cm = cm;
+        this.sections = sections;
+    }
+
+    sectionStart(section: SectionCache) {
+        return this.cm.getLine(section.position.start.line);
+    }
+
+    getHeadingPos(level: number, section: SectionCache, sections?: SectionCache[]) {
+        let using = sections ?? this.sections;
+        let res: SectionCache = section;
+        for (let sec of using) {
+            if (sec.position.start.offset > section.position.start.offset) break;
+            else if (sec.type == "heading") {
+                if (level) {
+                    let currentLevel = this.sectionStart(sec).match(RX.matchHeadingHashes)?.length;
+                    if (currentLevel == level) res = sec;
+                } else res = sec;
+            }
+        }
+
+        return { start: fromLoc(res.position.start), end: fromLoc(res.position.end) };
+    }
+
+    getSubSectionsEnd(section: SectionCache, sections?: SectionCache[]) {
+        let using = sections ?? this.sections;
+        let idx = using.indexOf(section) + 2;
+        let end = fromLoc(section.position.end);
+        for (; idx < using.length; idx++) {
+            if (this.isGreaterSection(section, using[idx])) continue;
+            console.log(idx, section, using[idx]);
+            end = fromLoc(using[idx].position.start);
+            break;
+        }
+        return end;
+    }
+
+    getSectionFromPos(position: CodeMirror.Position, sections?: SectionCache[]) {
+        let using = sections ?? this.sections;
+        for (let sec of using) {
+            let { position: pos, type, id } = sec;
+            if (pos.start.line <= position.line && pos.end.line >= position.line) return sec;
+        }
+        throw new Error("in getSectionFromPos: tried to get section at invalid position");
+        return null;
+    }
+
+    isGreaterSection(left: SectionCache, right: SectionCache) {
+        let t1: SectionType = <SectionType>left.type;
+        let t2: SectionType = <SectionType>right.type;
+        let L1 = this.sectionStart(left).match(RX.matchHeadingHashes)?.length,
+            L2 = this.sectionStart(right).match(RX.matchHeadingHashes)?.length;
+
+        switch (t1) {
+            case "heading":
+                return t2 == "heading" ? L1 < L2 : true; // lower number of hashes means higher level
+            default:
+                return t1 == t2;
+        }
+    }
+}
+
+
+
+export class File {
+    directory: string;
+    name: string;
+    public get path(): string {
+        return `${this.directory}/${this.name}.md`; //FUTURE:incorporate filetypes if necessary
+    }
+    public set path(value: string) {
+        this.directory = value.replace(RX.matchFileName, '') ?? '';
+        this.name = value.match(RX.matchFileName)?.first().replace(/\.\w+/, '') ?? '';
+    }
+    constructor(dir: string, name?: string) {
+        if (name) {
+            this.directory = dir;
+            this.name = name;
+        } else this.path = dir;
+    }
+}
+
+
 
 
 

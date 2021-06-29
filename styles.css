@@ -21,3 +21,7 @@ body {
 .flatpickr-calendar {
     margin-top: -50px;
 }
+
+.suggestion {
+    min-width: 220px;
+}

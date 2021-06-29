@@ -4,13 +4,22 @@ import * as DU from 'src/Utils';
 import * as chrono from 'chrono-node';
 
 import { ANY_ALL_CLAUSE, ANY_META, E, GetClauses, MATCHERS, MetaClause, SanitizeInput } from "src/Scheduling/Clause";
-import { ChroniclerSettings, get, settings, zip } from '../common';
+import { ChroniclerSettings, get, settings, wrap, zip } from '../common';
 import { RRule, RRuleSet } from 'rrule';
 
 import { ParsingComponents } from 'chrono-node/dist/results';
 import { moment } from 'src/moment_range';
 
-export default class Rule extends RRuleSet {
+/* 
+    TODO: 
+    - need to extract comma and dash sequences
+    - extract for n times, n times, x10
+        - needs to apply for every clause unless clause individuall has times specifier
+    - mox,monx,tux,tuex,etc. should be shorthand for mondays,tuesdays,etc.
+    - dash/plus immediatly preceding should convert to except/include, i.e. 'every other day -monx +tux'
+    - the and conjunction should duplicate the preceeding metaclause: 'every day except thursdays and fridays'
+*/
+export default class TimeRule extends RRuleSet {
     clauses: MetaClause[] = [];
     settings: ChroniclerSettings;
     originalString: string;
@@ -33,7 +42,6 @@ export default class Rule extends RRuleSet {
         // console.log(input, '\n', types, '\n', clauses, '\n');
 
         let preclauses = new Array<string>();
-
         for (let [type, clause] of zip(types, clauses)) {
             let match = clause.match(range);
 
@@ -99,13 +107,16 @@ export default class Rule extends RRuleSet {
 
         let opt = RRule.parseText(mc.every.rruleVersion);
         // let bmda = opt.bymonthday as number[], bmdn = typeof opt.bymonthday === 'number' ? opt.bymonthday : null;
-        ;
         let fallback = this.settings?.fallbackLastBound ? this._rrule.last() : null;
 
         opt.wkst = this.settings.weekStart;
         opt.dtstart = mc.starting?.parsedDate ?? fallback?.options.dtstart ?? mc.every.parsedDate;
         opt.until = mc.ending?.parsedDate ?? fallback?.options.until ?? null;
         opt.count ??= this.settings.defaultMaxEvents;
+        if (Array.isArray(opt.byweekday)) // monday is 0 in rrule and 1 in chrono
+            for (let i of opt.byweekday)
+                if (typeof i == 'number') i = wrap(i + 1, 6);
+
         // this caused an issue with 'every month on the 1st', and I'm not sure how but the original issue isn't present anymore
         // if (false) bmda[0] = opt.dtstart.getDate(); // added this because rrule erroneously set it to the current month day on 'every 15 months starting jan 1'
         // else if (bmdn) bmdn = opt.dtstart.getDate();
@@ -116,31 +127,8 @@ export default class Rule extends RRuleSet {
         else this.exrule(rule);
     }
 
-    private GetTimeIfNotTimely(rule: RRule, input: string) {
-        let opt = RRule.parseText(input);
-        rule = new RRule(opt);
-        //RRule can't handle time settings in daily/weekly/etc....
-        switch (rule.origOptions.freq) {
-            case RRule.HOURLY: case RRule.MINUTELY: case RRule.SECONDLY:
-                break;
-            default:
-                // ...so if it's not time based, we will have to remove the time after extracting with chrono
-                let t = chrono.casual.parseDate(input);
-                input = input.replace(/at .*?(\d\d?(\:\d\d)?((pm)|(am))?) ?/ig, '');
-                let opt = RRule.parseText(input);
-                opt.dtstart = rule.options.dtstart ?? new Date(Date.now());
-                opt.dtstart.setHours(t.getHours());
-                opt.dtstart.setMinutes(t.getMinutes());
-                opt.dtstart.setSeconds(t.getSeconds());
-                rule = new RRule(opt);
-            /* this handles cases like "Every month on the 2nd last Friday at around 5am for 7 times"
-             by changing it to "Every month on the 2nd last Friday for 7 times"
-            */
-        }
-        return { rule, input };
-    }
 
-    // for some reason exdates don't work properly unless they're updated to current time, TODO: will figure out later
+    // for some reason exdates/rules don't work properly unless they're updated to current time, TODO: will figure out later
     tickleExDates() {
         let x = new Date();
         console.log("tickleDates: %c" + x, 'color:red');
@@ -177,7 +165,8 @@ export default class Rule extends RRuleSet {
         console.log("%c" + this.originalString, "color:green");
         console.log("End Result: ", this);
         let count = 0;
-        for (let i of this.all()) console.log("%c result: " + i.toUTCString() + "   " + i, "color:orange");
+        for (let i of this.all(v => count++ < 50)) console.log("%c result: " + i.toUTCString() + "   " + i, "color:orange");
+        this.dtstart;
     }
 
 }
@@ -218,7 +207,7 @@ function SanitizeRule(input: string) {
     input = input.replace(/ quarter (?=on the ?\w* last)/gim, ' March,June,September,December '); // otherwise the ending clause becomes e.g. 'ending next March,June...'
     input = input.replace(/ quarter ?/gim, ' January,April,July,October on the 1st');
 
-    input = input.replace(/(\d\d\d\d)(?!\w)/gmi, '$1CE'); // default any 4 digit year to CE (not an intelligent way to solve the problem with chrono treating years as times, but in this context it should be fine)
+    input = input.replace(/[^\/.](\d\d\d\d)[^\/.](?!\w)/gmi, '$1CE'); // default any 4 digit year to CE (not an intelligent way to solve the problem with chrono treating years as times, but in this context it should be fine)
     /* 
     note: right now that example is technically broken, the end date will be the last day of the **first month** of the next quarter
     this isn't something I care to fix, because a different end date like 'next april' works just as well, and the fix

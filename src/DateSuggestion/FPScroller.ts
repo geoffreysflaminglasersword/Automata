@@ -4,52 +4,42 @@ type Instance = flatpickr.Instance;
 type Plugin = flatpickr.Options.Plugin;
 
 function delta(e: WheelEvent) {
-    return Math.max(-1, Math.min(1, -e.deltaY));
+  return Math.max(-1, Math.min(1, -e.deltaY));
 }
 
-function scrollMonth(fp: Instance) {
-    return (e: WheelEvent) => {
-        e.preventDefault();
-        fp.changeMonth(delta(e));
-    };
-}
 
 export default function scrollPlugin(): Plugin {
-    return function (fp) {
-        const monthScroller = scrollMonth(fp);
-        return {
-            onReady() {
-                fp.calendarContainer.addEventListener("wheel", monthScroller);
-                fp.loadedPlugins.push("scroll");
-            },
-            onDestroy() {
-
-                fp.calendarContainer.removeEventListener("wheel", monthScroller);
-
-            },
-        };
+  return function (fp) {
+    const monthScroller = ((e: WheelEvent) => {
+      e.preventDefault();
+      fp.changeMonth(-delta(e));
+    }).bind(fp);
+    const yearScroller = ((e: WheelEvent) => {
+      e.preventDefault();
+      fp.changeYear(fp.currentYear - delta(e));
+    }).bind(fp);
+    return {
+      onReady() {
+        fp.innerContainer.addEventListener("wheel", monthScroller);
+        // fp.innerContainer
+        fp.yearElements.forEach((yearElem) => yearElem.addEventListener("wheel", yearScroller));
+        fp.loadedPlugins.push("scroll");
+      },
+      onDestroy() {
+        fp.innerContainer.removeEventListener("wheel", monthScroller);
+        fp.yearElements.forEach((yearElem) => yearElem.removeEventListener("wheel", yearScroller));
+      },
     };
+  };
 }
 
- // if (fp.timeContainer) fp.timeContainer.addEventListener("wheel", scroll);
-// fp.yearElements.forEach((yearElem) =>
-//     yearElem.addEventListener("wheel", scroll)
-// );
-// fp.monthElements.forEach((monthElem) =>
-//     monthElem.addEventListener("wheel", monthScroller)
-// );
-// if (fp.timeContainer) fp.timeContainer.removeEventListener("wheel", scroll);
-// fp.yearElements.forEach((yearElem) =>
-//     yearElem.removeEventListener("wheel", scroll)
-// );
-// fp.monthElements.forEach((monthElem) =>
-//     monthElem.removeEventListener("wheel", monthScroller)
-// );
+//NOTE: might use year scrolling at some point
 
 
 
 
 
+//TODO: rework positioning logic from flatpickr to auto adjust width and always be centered on cursor (and not wrap)
 
 /*
 

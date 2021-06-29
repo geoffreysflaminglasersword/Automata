@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    
     "inlineSourceMap": true,
     "inlineSources": true,
     "module": "ESNext",
@@ -26,7 +27,15 @@
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "Scheduling/*": [ "src/Scheduling/*" ],
+      "Utils": [ "src/Utils" ],
+      "Task": [ "src/Task/Task" ],
+      "Regex": [ "src/Regex" ],
+      "common": [ "src/common" ],
+      "settings": [ "src/Settings/settings" ],
+    },
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": ["**/*.ts", "**/*.tsx","**/*.svelte"]
 }

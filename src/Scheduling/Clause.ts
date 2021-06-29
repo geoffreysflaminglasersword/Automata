@@ -24,12 +24,12 @@ export const MIDS = ['mid-month', 'mid-day'] as const;
 export const ALL_QUANTIFIERS = [...INFORMAL_QUANTIFIERS, ...UNIT_QUANTIFIERS, ...DATE_QUANTIFIERS, ...MIDS] as const;
 
 export const RECURRANCES = [
-    'mondays', 'tuesdays', 'wednesdays', 'thursdays', 'fridays', 'saturdays', 'sundays',
+    'mondays', 'tuesdays', 'wednesdays', 'thursdays', 'fridays', 'saturdays', 'sundays', 'weekdays', 'weekends',
 
     'hourly', 'daily', 'biweekly', 'weekly', 'semi-monthly', 'bi-monthly',
     'monthly', 'semiannually', 'annually', 'biennially', 'semi-decennially',
     'bi-decennially', 'decennially', 'semi-centennially', 'bi-centennially',
-    'centennially', 'millenially',
+    'centennially', 'millennially',
 
 ] as const;
 
@@ -72,6 +72,8 @@ export const MATCHERS: Record<typeof SIMPLE_REPLACE[number], [RegExp, string]> =
     'fridays': [/ ?fridays ?/gim, ' every friday '],
     'saturdays': [/ ?saturdays ?/gim, ' every saturday '],
     'sundays': [/ ?sundays ?/gim, ' every sunday '],
+    'weekdays': [/ ?weekdays ?/gim, ' every weekday '],
+    'weekends': [/ ?weekends ?/gim, ' every weekend '],
 
     'hourly': [/ ?hourly ?/gim, ' every hour '],
     'daily': [/ ?daily ?/gim, ' every day '],
@@ -89,7 +91,7 @@ export const MATCHERS: Record<typeof SIMPLE_REPLACE[number], [RegExp, string]> =
     'semi-centennially': [/ ?semi-?centennially ?/gim, ' every 50 years '],
     'bi-centennially': [/ ?bi-?centennially ?/gim, ' every 200 years '],
     'centennially': [/ ?centennially ?/gim, ' every 100 years '],
-    'millenially': [/ ?millennially ?/gim, ' every 1000 years '],// yes, I like to schedule things 1000 years in advance
+    'millennially': [/ ?millennially ?/gim, ' every 1000 years '],// yes, I like to schedule things 1000 years in advance
     'weekday': [/ ?weekday ?/gim, ' mon,tue,wed,thu,fri '],
     'workday': [/ ?workday ?/gim, ' mon,tue,wed,thu,fri '],
     'weekend': [/ ?weekend ?/gim, ' sat,sun '],
@@ -147,17 +149,16 @@ class Clause {
     public parsedDate: Date;
 
     protected details: any[] = new Array();
-    private _clause: string;
+    private clause: string;
     private _rruleVersion: string;
     private ass = (e: CustomEvent) => { this.details.push(e.detail); };
 
-    public get clause(): string { return this._clause; }
     public get rruleVersion(): string { return 'every ' + this._rruleVersion; }
 
     constructor(recurrent = false) { this.isRecurrent = recurrent; }
 
     public setClause(value: string): void {
-        this._clause = value.trim();
+        this.clause = value.trim();
 
         addEventListener(eHOLIDAY, this.ass);
         this.parseResults = chrono.casual.parse(this.clause); // custom parser fires event that sets holiday detail... smelly

@@ -417,7 +417,7 @@ const easters = new Map([
 
 function getEaster(year: number, holiday: { type: string; date: any; nth: number; month: number; day: number; func: Function; }): Date {
     let d = new Date(easters.get(year));
-    holiday.month = d.getMonth();
+    holiday.month = d.getMonth() + 1;//TODO: investigate off by one error here
     holiday.date = d.getDate();
     return d;
 }

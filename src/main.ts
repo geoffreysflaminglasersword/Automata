@@ -3,17 +3,16 @@ import './Scheduling/refinersAndParsers';
 import * as EX from './Scheduling/examples';
 import * as chrono from 'chrono-node';
 
-import { ChroniclerSettingTab, ChroniclerSettings, DEFAULT_SETTINGS } from './settings';
+import { ChroniclerSettingTab, ChroniclerSettings, DEFAULT_SETTINGS } from './Settings/settings';
 import { FuzzySuggestModal, TFile } from "obsidian";
 import { ItemView, Modal, Obsidian, Plugin, Register, Vault, WorkspaceLeaf } from './common';
 import { RRule, Weekday } from 'rrule';
 
-import { DiceRoller } from "./reactTest";
-import Like from './FlatPickr.svelte';
-import React from "react";
-import ReactDOM from "react-dom";
-import Rule from "./Scheduling/Rule";
-import Suggestion from './Suggestion.svelte';
+import FlatPickr from './DateSuggestion/FlatPickr.svelte';
+import { G_CTX } from "./globalContext";
+import Suggestion from './DateSuggestion/Suggestion.svelte';
+import TimeRule from "./Scheduling/Rule";
+import { get } from './common';
 
 // import Autocomplete from 'react-native-autocomplete-input';
 // import { DateSuggest } from './suggest';
@@ -28,11 +27,12 @@ import Suggestion from './Suggestion.svelte';
 
 
 
+
 export default class Chronicler extends Plugin {
 	settings: ChroniclerSettings;
 
+
 	private suggestEl = createDiv("suggestion-container");
-	private view: MyReactView;
 	private autosuggest: Suggestion;
 	private unregister: () => void;
 
@@ -40,12 +40,10 @@ export default class Chronicler extends Plugin {
 
 	async onload() {
 		console.log('loading Chronicler');
+		G_CTX.initialize(this.app);
 		await this.loadSettings();
+
 		this.addSettingTab(new ChroniclerSettingTab(this.app, this));
-		this.registerView(
-			VIEW_TYPE,
-			(leaf: WorkspaceLeaf) => (this.view = new MyReactView(leaf))
-		);
 		this.addCommand({
 			id: 'open-Chronicler-modal',
 			name: 'Open Chronicler Modal',
@@ -53,7 +51,7 @@ export default class Chronicler extends Plugin {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new ChroniclerModal(new Obsidian(this.app)).open();
+						new ChroniclerModal().open();
 					}
 					return true;
 				}
@@ -67,6 +65,8 @@ export default class Chronicler extends Plugin {
 			this.registerCodeMirror((cm: CodeMirror.Editor) => {
 				console.log('codemirror', cm);
 				// cm.on("cursorActivity", (cm) => console.log("cursorActivity: ", cm));o
+
+
 			});
 
 			this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
@@ -98,10 +98,7 @@ export default class Chronicler extends Plugin {
 		this.autosuggest = new Suggestion({
 			target: this.suggestEl,
 			props: {
-				plugin: this,
-				app: this.app,
 				targetRef: this.suggestEl,
-				editor: cm
 			}
 		});
 		this.unregister();
@@ -121,12 +118,7 @@ export default class Chronicler extends Plugin {
 	}
 
 	onLayoutReady(): void {
-		if (this.app.workspace.getLeavesOfType(VIEW_TYPE).length) {
-			return;
-		}
-		this.app.workspace.getRightLeaf(false).setViewState({
-			type: VIEW_TYPE,
-		});
+
 	}
 
 
@@ -167,7 +159,7 @@ export default class Chronicler extends Plugin {
 
 
 class ChroniclerModal/*  extends FuzzySuggestModal<string>  */ extends Modal {
-	like: Like;
+	like: FlatPickr;
 	getItems(): string[] {
 		return ['Jeff', 'is', 'my', 'hero'];
 	}
@@ -177,18 +169,15 @@ class ChroniclerModal/*  extends FuzzySuggestModal<string>  */ extends Modal {
 	onChooseItem(item: string, evt: MouseEvent | KeyboardEvent): void {
 		console.log(`item`, item);
 	}
-	obsidian: Obsidian;
-	// ac: SvelteComponent;
 
-	constructor(obsidian: Obsidian) {
-		super(obsidian.app);
-		this.obsidian = obsidian;
+	constructor() {
+		super(G_CTX.app);
 	}
 
 	async onOpen() {
 
 		let { contentEl, containerEl } = this;
-		let like = new Like({ target: contentEl });
+		let like = new FlatPickr({ target: contentEl });
 
 
 		// this.ac = new autocomplete({ target: this.contentEl });
@@ -310,34 +299,3 @@ class ChroniclerModal/*  extends FuzzySuggestModal<string>  */ extends Modal {
 		contentEl.empty();
 	}
 }
-
-
-
-
-
-
-const VIEW_TYPE = "react-view";
-
-class MyReactView extends ItemView {
-	private reactComponent: React.ReactElement;
-
-	getViewType(): string {
-		return VIEW_TYPE;
-	}
-
-	getDisplayText(): string {
-		return "Dice Roller";
-	}
-
-	getIcon(): string {
-		return "calendar-with-checkmark";
-	}
-
-	async onOpen(): Promise<void> {
-		this.reactComponent = React.createElement(DiceRoller);
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		ReactDOM.render(this.reactComponent, (this as any).contentEl);
-	}
-}
-

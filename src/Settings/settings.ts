@@ -1,7 +1,7 @@
-import { App, Modifier, PluginSettingTab, Setting } from "./common";
+import { App, Modifier, PluginSettingTab, Setting } from "../common";
 import { RRule, Weekday } from 'rrule';
 
-import Chronicler from './main';
+import Chronicler from '../main';
 import { writable } from "svelte/store";
 
 export interface ChroniclerSettings {
@@ -12,18 +12,18 @@ export interface ChroniclerSettings {
     autocompleteTriggerPhrase: string;
     includeSubsectionsTrigger: string;
     insertDatesModifier: Exclude<Modifier, 'Mod'>;
-    useHeadingAsTitle: boolean;
+    calendarPreviewPopupDelay: number;
 }
 
 export const DEFAULT_SETTINGS: ChroniclerSettings = {
     fallbackLastBound: true,
     weekStarts: 'Sunday',
     weekStart: RRule.SU,
-    defaultMaxEvents: 8,
+    defaultMaxEvents: 25,
     autocompleteTriggerPhrase: '@',
     includeSubsectionsTrigger: '@@',
     insertDatesModifier: 'Shift',
-    useHeadingAsTitle: true,
+    calendarPreviewPopupDelay: 1500,
 };
 
 export const settings = writable(DEFAULT_SETTINGS);

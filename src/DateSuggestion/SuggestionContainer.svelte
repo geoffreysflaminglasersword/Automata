@@ -1,20 +1,11 @@
 <script lang="ts">
   import SuggestionItem from "./SuggestionItem.svelte";
-  import { wrap, getUniqueArray } from "./Utils";
-  import {
-    settings,
-    onMount,
-    onDestroy,
-    getContext,
-    Keys,
-    SuggestionCtx,
-    Register,
-    isNullOrWhitespace,
-  } from "./common";
+  import { wrap, getUniqueArray } from "Utils";
+  import { Scope, settings, onMount, onDestroy, getContext, Register, isNullOrWhitespace, G_CTX } from "common";
   import { matchSorter } from "match-sorter";
-  import { GetLikely } from "./Scheduling/Clause";
+  import { GetLikely } from "Scheduling/Clause";
 
-  export let input: string, current: string;
+  export let input: string, current: string, scope: Scope;
   $: likely = GetLikely(input); //TODO: add multi-word suggestions and make top 2 results based on MRU
   $: sortKey = isNullOrWhitespace(input) ? "" : input;
   $: firstChar = sortKey ? sortKey.charAt(0) : "";
@@ -25,11 +16,11 @@
     suggestions = getUniqueArray([...suggestions, ...matchSorter(likely, firstChar)]).slice(0, 7);
   $: current = suggestions[current_index];
 
-  let { app, plugin, scope, editor } = getContext<SuggestionCtx>(Keys.suggestion);
+  let { SApp, SEditor, plugin } = G_CTX;
   let current_index: number = 0;
 
   onMount(() => {
-    editor.addKeyMap(disableTab);
+    $SEditor.addKeyMap(disableTab);
     unregister = Register(
       scope,
       [
@@ -39,12 +30,12 @@
       plugin,
       [["keyHandled", () => (current_index = 0)]]
     );
-    (<any>app).keymap.pushScope(scope);
+    (<any>$SApp).keymap.pushScope(scope);
   });
   onDestroy(() => {
-    editor.removeKeyMap(disableTab);
+    $SEditor.removeKeyMap(disableTab);
     unregister();
-    (<any>app).keymap.popScope(scope);
+    (<any>$SApp).keymap.popScope(scope);
   });
   let unregister: () => void;
   const disableTab = { Tab: (cm: CodeMirror.Editor) => cm.replaceSelection(" ", "end") };
