@@ -1,7 +1,7 @@
 <script lang="ts">
   import { BlockCache, CacheItem, Editor, Pos, SectionCache, TFile, Workspace, Loc } from "obsidian";
   import { App, Plugin, Scope, CM_Map, settings, onMount, onDestroy } from "common";
-  import { setContext, Register, isNullOrWhitespace, RX, regexIndexOf, G_CTX } from "common";
+  import { setContext, Register, isNullOrWhitespace, RX, regexIndexOf, Global } from "common";
   import FlatPickr from "./FlatPickr.svelte";
   import SuggestionContainer from "./SuggestionContainer.svelte";
   import { SectionUtils, fromLoc, Options } from "Utils";
@@ -10,12 +10,12 @@
   // State
   export let targetRef: HTMLElement;
 
-  $: ({ SApp, SEditor, SWorkspace, plugin } = G_CTX);
-  $: console.log("Here: ", plugin, G_CTX.plugin);
+  $: ({ SApp, SEditor, SWorkspace, plugin, editor } = Global);
+  $: console.log("Here: ", plugin, Global.plugin);
   let scope = new Scope();
 
   // Validation
-  $: if (!$SEditor) throw new Error("in suggestion: editor must always exist");
+  $: if (!editor) throw new Error("in suggestion: editor must always exist");
 
   // Settings
   $: ({ insertDatesModifier: insertMod, autocompleteTriggerPhrase: trigger, includeSubsectionsTrigger } = $settings);
@@ -23,41 +23,63 @@
   // Declarations
 
   let active: TFile;
-  let [isOpen, isSingleCursor, chosen] = [false, true, ""];
+  let isOpen = false,
+    isSingleCursor = true,
+    chosen = "";
   let task: PartialTask,
     selectedDates: Date[] = [];
 
   // Reactive Declarations
   $: cursor = $SEditor.getCursor();
   $: lineNo = cursor.line;
-  $: line = $SEditor.getLine(cursor.line);
+  $: line = editor.getLine(cursor.line);
   $: triggerPos = regexIndexOf(line, RX.getFirstAtSign, 0);
   $: foundTrigger = triggerPos >= 0;
   $: shouldOpen = isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
-  $: shouldClose = !foundTrigger || cursor.ch <= triggerPos;
+  $: shouldClose = !foundTrigger || cursor.ch <= Math.max(triggerPos, 0);
 
   $: content = line.replace(new RegExp(".*" + trigger), "");
   $: excess = line.length - content.length;
   $: currentWord = content.substring(0, cursor.ch - excess).match(RX.rxLastWordOrSpace)[0];
 
   // Reactive Logic
-  $: if (shouldClose) close();
-  else if (shouldOpen) {
+  $: if (shouldClose && isOpen) {
+    // console.log("ASDFFDSA", shouldClose, foundTrigger, cursor.ch, triggerPos);
+    close();
+  } else if (shouldOpen) {
     isOpen = true;
     active = $SWorkspace.getActiveFile();
   }
-  $: if (!shouldClose && shouldOpen) $SEditor.addWidget(cursor, targetRef, true);
+  $: if (!shouldClose && shouldOpen) {
+    editor.addWidget(cursor, targetRef, true);
+  }
+
+  // let OpenFunc: (cm: CodeMirror.Editor) => void = (cm) => cm.replaceSelection("\n");
+  // let CloseFunc: (cm: CodeMirror.Editor) => void = (cm) =>
+  //   console.log("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWCaught Enter!");
+
+  // $: {
+  //   if (isOpen === true) {
+  //     $SEditor.setOption("extraKeys", Object.assign($SEditor.getOption("extraKeys"), { Enter: OpenFunc }));
+  //     console.log("Open change ", isOpen);
+  //   }
+  //   if (isOpen === false) {
+  //     $SEditor.setOption("extraKeys", Object.assign($SEditor.getOption("extraKeys"), { Enter: CloseFunc }));
+  //     console.log("close change ", isOpen);
+  //   }
+  // }
 
   // Handlers
   function update(cm: CodeMirror.Editor, change: CodeMirror.EditorChange) {
-    if ($SEditor !== cm) close();
-    ($SEditor = cm), (isSingleCursor = change.text.length == 1);
+    if (editor !== cm) close();
+    (editor = cm), (isSingleCursor = change.text.length == 1);
   }
   function onCursorMove(cm: CodeMirror.Editor) {
-    if ($SEditor !== cm) close();
-    ($SEditor = cm), (cursor = $SEditor.getCursor());
+    if (editor !== cm) close();
+    (editor = cm), (cursor = editor.getCursor());
   }
   function close(): void {
+    // console.log("CALLED CLOSE");
     (isOpen = false), (selectedDates = []), targetRef.detach();
   }
   function select(event: KeyboardEvent | MouseEvent) {
@@ -76,6 +98,7 @@
       if (isConfirmation) createTask();
       else if (!blank) autoCompleteReplace();
     }
+    console.log(`isOpen:Select: `, isOpen);
   }
 
   let unregister: () => void;
@@ -101,15 +124,13 @@
   // Helpers
 
   function autoCompleteReplace() {
-    let { start, end, string: token } = $SEditor.getTokenAt(cursor);
+    let { start, end, string: token } = editor.getTokenAt(cursor);
     let idx = token.lastIndexOf(trigger);
     start += idx == -1 ? 0 : idx + trigger.length;
-    $SEditor.replaceRange(chosen, { line: lineNo, ch: start }, { line: lineNo, ch: end });
+    editor.replaceRange(chosen, { line: lineNo, ch: start }, { line: lineNo, ch: end });
   }
 
   async function createTask() {
-    // $globalContext.taskIndex += 1;
-
     let titleContent: string,
       taskContent: string,
       blockId = "task-" + 1; //$globalContext.taskIndex;
@@ -119,29 +140,29 @@
       cleanLineNoHash = cleanMarkDownLine.replace(/#/gm, "").trim(),
       includeSubsections = !!line.match(includeSubsectionsTrigger)?.length,
       headingSearchLevel = line.match(RX.hashPrecedingAt)?.length,
-      SU = new SectionUtils($SEditor, $SApp.metadataCache.getFileCache(active).sections),
+      SU = new SectionUtils(editor, $SApp.metadataCache.getFileCache(active).sections),
       section = SU.getSectionFromPos(cursor);
 
     let start = fromLoc(section.position.start),
       end = fromLoc(section.position.end);
 
-    $SEditor.replaceRange(cleanMarkDownLine + " ^" + blockId, { line: lineNo, ch: 0 }, { line: lineNo, ch: Infinity });
+    editor.replaceRange(cleanMarkDownLine, { line: lineNo, ch: 0 }, { line: lineNo, ch: cursor.ch });
+    editor.replaceRange(" ^" + blockId, { line: lineNo, ch: Infinity });
 
     if (includeSubsections) end = SU.getSubSectionsEnd(section);
 
     taskContent = includeSubsections
-      ? $SEditor.getRange(start, end).replace(RX.blockRefs, "")
+      ? editor.getRange(start, end).replace(RX.blockRefs, "")
       : "![[" + active.basename + "#^" + blockId + "]]";
 
     if (headingSearchLevel) {
       ({ start, end } = SU.getHeadingPos(headingSearchLevel, section));
-      titleContent = $SEditor.getRange(start, end);
+      titleContent = editor.getRange(start, end);
     } else titleContent = cleanLineNoHash;
 
     titleContent = RX.cleanHeading(titleContent);
 
     let t = new Task(taskContent, titleContent, line, task);
-
     close();
   }
 

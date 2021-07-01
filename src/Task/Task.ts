@@ -1,5 +1,4 @@
-import { CompositeContext, Context, FileContext } from "./Context";
-import { File, G_CTX } from "common";
+import { File, Global } from "common";
 
 import TimeRule from "Scheduling/Rule";
 
@@ -13,8 +12,6 @@ import TimeRule from "Scheduling/Rule";
         the user configured and set the attribute, if not, then set the project attribute
     TODO: also, if that word it followed by a colon, then use it as the attribute and what's after the colon as the value
 */
-
-
 /* things that a context could resolve:
  file name
  file directory
@@ -22,12 +19,11 @@ import TimeRule from "Scheduling/Rule";
  date
  
  */
-
-/* 
+/*
 
     if I'm in file X then write to directory Y
     if I'm in file X then assign project #Project
-    if I'm in file X and the current time is between 5 and 9, then assign due date of tomorrow 
+    if I'm in file X and the current time is between 5 and 9, then assign due date of tomorrow
 
     if I'm on board B, task A should show up if task Z is complete or today is after day D
 
@@ -53,8 +49,7 @@ import TimeRule from "Scheduling/Rule";
             set user specified
         run template
 */
-
-/*     
+/*
     file/folder context : user or automatic
         allow basic matching and regex matching
     time context : user or automatic
@@ -67,43 +62,10 @@ import TimeRule from "Scheduling/Rule";
     Composit context
         combine several contexts
  */
-
-
-
-
 // /* Rules are used by Global Context to determine what contexts to assign */
 // class Rule {
 //     // contexts
 // }
-
-abstract class Visitor {
-    abstract visit<T>(context: Context, args: T): any;
-
-}
-
-export abstract class ContextVisitor extends Visitor {
-}
-
-export class ApplicabilityVisitor extends ContextVisitor {
-    visit<T>(context: Context, args: T): boolean {
-        if (context instanceof FileContext)
-            return !!G_CTX.currentFile.path.match(context.match);
-        return false;
-    }
-}
-
-class CRet { file: File; data: string; };
-export class CreationVisitor extends ContextVisitor {
-    visit<T>(context: Context, args: T): CRet {
-        if (!(args instanceof CRet)) return;
-        if (context instanceof FileContext)
-            args.file.path = context.destination;
-        return args;
-    }
-}
-
-
-
 
 export class TaskBase {
     rule: TimeRule;
@@ -129,7 +91,7 @@ export class PartialTask extends TaskBase {
         this.extra = extra ?? this.extra;
         if (taskLine != this.rule?.originalString) this.rule = new TimeRule(taskLine);
         extra?.forEach((item) => this.rule.rdate(item));
-        this.rule.print();
+        // this.rule.print();
     }
 
     enabled = () => Array.from(this.rule.all()).concat(this.extra);
@@ -151,7 +113,7 @@ export class Task extends TaskBase {
         console.log(titleContent);
         console.log(taskContent);
 
-        G_CTX.create(new File('tasks', titleContent), taskContent);
+        Global.create(new File('tasks', titleContent), taskContent);
 
         // in original file
         // check settings, add link to task using title

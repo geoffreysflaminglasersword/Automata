@@ -1,7 +1,7 @@
 import * as RX from 'Regex';
 
 import { App, FileSystemAdapter, Plugin, PluginManifest, Vault, Workspace } from "obsidian";
-import { File, If, Register, getUniqueArray, isNullOrWhitespace, wrap, zip } from "./Utils";
+import { Dir, File, If, Name, Path, Register, getUniqueArray, isNullOrWhitespace, wrap, zip } from "./Utils";
 import type { Instantce, Options } from "./Utils";
 import { ItemView, KeymapEventHandler, KeymapEventListener, Modal, Modifier, } from "obsidian";
 import { Notice, PluginSettingTab, Scope, Setting, WorkspaceLeaf } from "obsidian";
@@ -9,7 +9,7 @@ import { Writable, get, writable } from "svelte/store";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
 
 import { ChroniclerSettings } from "settings";
-import { G_CTX } from "./globalContext";
+import { Global } from "./globalContext";
 import { regexIndexOf } from 'Regex';
 import { settings } from "settings";
 
@@ -17,13 +17,13 @@ export {
     onMount, onDestroy, writable, getContext, setContext, settings,
     App, FileSystemAdapter, Plugin, Scope, Vault, Modal, Notice, PluginSettingTab,
     ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace, get,
-    getUniqueArray, If, RX, regexIndexOf, wrap, Workspace, G_CTX, File
+    getUniqueArray, If, RX, regexIndexOf, wrap, Workspace, Global, File,
 };
 
 export type {
     PluginManifest, KeymapEventHandler, Modifier,
     KeymapEventListener, ChroniclerSettings,
-    Options, Instantce,
+    Options, Instantce, Dir, Name, Path,
 };
 
 

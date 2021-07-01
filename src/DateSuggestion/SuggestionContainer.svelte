@@ -1,7 +1,7 @@
 <script lang="ts">
   import SuggestionItem from "./SuggestionItem.svelte";
   import { wrap, getUniqueArray } from "Utils";
-  import { Scope, settings, onMount, onDestroy, getContext, Register, isNullOrWhitespace, G_CTX } from "common";
+  import { Scope, settings, onMount, onDestroy, getContext, Register, isNullOrWhitespace, Global } from "common";
   import { matchSorter } from "match-sorter";
   import { GetLikely } from "Scheduling/Clause";
 
@@ -16,7 +16,7 @@
     suggestions = getUniqueArray([...suggestions, ...matchSorter(likely, firstChar)]).slice(0, 7);
   $: current = suggestions[current_index];
 
-  let { SApp, SEditor, plugin } = G_CTX;
+  let { SApp, SEditor, plugin } = Global;
   let current_index: number = 0;
 
   onMount(() => {

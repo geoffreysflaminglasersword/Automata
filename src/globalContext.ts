@@ -1,11 +1,12 @@
 import { App, File, FileSystemAdapter, Plugin, PluginId, PluginManifest, Vault, Workspace } from "common";
-import { ApplicabilityVisitor, CreationVisitor } from "Task";
+import { ApplicabilityVisitor, CreationVisitor } from "./Visitor";
+import { CompositeContext, Context, FileContext } from "./Context";
 import { Invalidator, MemberStoreType, SubscribableKeys, UpdatableKeys, WritablePropertize } from "./Utils";
 import { Subscriber, Writable, get, writable } from "svelte/store";
 
 import { ChroniclerSettings } from "settings";
 import CodeMirror from "codemirror";
-import { CompositeContext } from "./Task/Context";
+import { TFile } from "obsidian";
 
 // export const globalContext = writable({
 //     taskIndex: 0,
@@ -17,12 +18,16 @@ type PrivateStoredProps = WritablePropertize<ObsidianCommon>;
 // type PrivateStoredPropKeys = keyof PrivateStoredProps;
 // export interface Obsidian extends Omit<_Obsidian, PrivateStoredPropKeys> { }
 class GlobalContext extends CompositeContext implements PrivateStoredProps {
+    contextMap = new Map<string, Context>([
+        ['Test', new FileContext('task/', 'jeff/')]
+    ]);
+
     basePath: string;
     plugins: any;
     plugin: Plugin;
 
-    currentFile: File;
-    activeContexts: string[];
+    currentFile: TFile;
+    activeContexts: string[] = ['Test'];
 
     SApp: Writable<App>;
     SVault: Writable<Vault>;
@@ -45,8 +50,8 @@ class GlobalContext extends CompositeContext implements PrivateStoredProps {
         this.workspace.on('codemirror', ((cm) => {
             if (!this.SEditor)
                 this.SEditor = writable(cm);
-            else
-                this.editor = cm;
+            this.editor = cm;
+
             console.log('CHANGED CODEMIRROR');
         }));
 
@@ -55,26 +60,32 @@ class GlobalContext extends CompositeContext implements PrivateStoredProps {
         this.plugins = (app as any).internalPlugins.app.plugins.plugins;
 
         this.plugin = this.getPlugin('obsidian-chronicler');
-        console.log(`this.plugin`, this.plugin, this.plugins);
 
         this.plugin.registerCodeMirror((cm) => {
             this.editor = cm; console.log('CHANGED CODEMIRROR 222222');
         });
 
-        this.currentFile = new File('/task');
-
-        console.log(`this.plugins`, this.plugins);
+        this.currentFile = this.workspace.getActiveFile();
+        this.workspace.on('active-leaf-change', (l) => {
+            this.currentFile = this.workspace.getActiveFile();
+            console.log('\t\t\t\tChanged Active File');
+        });
+        // console.log(`this.plugin`, this.plugin, this.plugins);
+        // console.log(`this.plugins`, this.plugins);
     }
 
 
     async create(file: File, data?: string) {
         this.updateApplicableContexts();
-        let params = { file, data }, visitor = new CreationVisitor();
-        this.activeContexts.forEach(v => params = this.contextMap.get(v).accept(visitor, params));
-        ({ file, data } = params);
-        if (!(await this.vault.adapter.exists(file.directory)))
-            await this.vault.createFolder(file.directory);
-        return await this.vault.create(file.path, data ?? '');
+        // console.log(`this.activeContexts`, this.activeContexts);
+        let visitor = new CreationVisitor({ file, data });
+        this.activeContexts.forEach(v => this.contextMap.get(v).accept(visitor));
+        // console.log(`visitor`, visitor, file, file.path);
+        if (file.directory && !(await this.vault.adapter.exists(<string>file.directory)))
+            await this.vault.createFolder(<string>file.directory);
+        if (await this.vault.adapter.exists(<string>file.path))
+            await this.vault.adapter.remove(<string>file.path); // TODO: update file instead of overwriting
+        return await this.vault.create(<string>file.path, data ?? '');
     }
 
 
@@ -98,7 +109,7 @@ class GlobalContext extends CompositeContext implements PrivateStoredProps {
     */
     private dualUpdate<T extends UpdatableKeys<GlobalContext>>(which: T, value: MemberStoreType<T, GlobalContext>) {
         this.update(v => {
-            (v[which] as Writable<MemberStoreType<T, GlobalContext>>).update(v => v = value);
+            (v[which] as Writable<MemberStoreType<T, GlobalContext>>)?.update(v => v = value);
             return v;
         });
     }
@@ -118,4 +129,4 @@ class GlobalContext extends CompositeContext implements PrivateStoredProps {
 
 }
 
-export const G_CTX: GlobalContext = new GlobalContext();
+export const Global: GlobalContext = new GlobalContext();

@@ -170,13 +170,14 @@ export class SectionUtils {
         return { start: fromLoc(res.position.start), end: fromLoc(res.position.end) };
     }
 
-    getSubSectionsEnd(section: SectionCache, sections?: SectionCache[]) {
+    getSubSectionsEnd(start: SectionCache, sections?: SectionCache[]) {
         let using = sections ?? this.sections;
-        let idx = using.indexOf(section) + 2;
-        let end = fromLoc(section.position.end);
+        let idx = using.indexOf(start) + 2;
+        let end = fromLoc(start.position.end);
         for (; idx < using.length; idx++) {
-            if (this.isGreaterSection(section, using[idx])) continue;
-            console.log(idx, section, using[idx]);
+            if (this.isGreaterSection(start, using[idx])) continue;
+            if (this.isGreaterSection(using[idx], start)) break;
+            console.log(idx, start, using[idx]);
             end = fromLoc(using[idx].position.start);
             break;
         }
@@ -198,33 +199,39 @@ export class SectionUtils {
         let t2: SectionType = <SectionType>right.type;
         let L1 = this.sectionStart(left).match(RX.matchHeadingHashes)?.length,
             L2 = this.sectionStart(right).match(RX.matchHeadingHashes)?.length;
-
         switch (t1) {
-            case "heading":
-                return t2 == "heading" ? L1 < L2 : true; // lower number of hashes means higher level
-            default:
-                return t1 == t2;
+            case "heading": return t2 == "heading" ? L1 < L2 : true; // lower number of hashes means higher level
+            default: return t2 != 'heading'; // for now headings are greater than everything else, and everything else is greater than each other
         }
     }
 }
 
-
+export type Dir = string;
+export type Name = string;
+export type Path = string;
 
 export class File {
-    directory: string;
-    name: string;
-    public get path(): string {
+    private _directory: Dir;
+    public get directory(): Dir {
+        return this._directory;
+    }
+    public set directory(value: Dir) {
+        this._directory = isNullOrWhitespace(value) ? null : value;
+    }
+    name: Name;
+    public get path(): Path {
         return `${this.directory}/${this.name}.md`; //FUTURE:incorporate filetypes if necessary
     }
-    public set path(value: string) {
+    public set path(value: Path) {
         this.directory = value.replace(RX.matchFileName, '') ?? '';
         this.name = value.match(RX.matchFileName)?.first().replace(/\.\w+/, '') ?? '';
     }
-    constructor(dir: string, name?: string) {
+    constructor(path: Dir | Path, name?: Name) {
+        console.log(`dir,name`, path, name);
         if (name) {
-            this.directory = dir;
+            this.directory = path;
             this.name = name;
-        } else this.path = dir;
+        } else this.path = path;
     }
 }
 

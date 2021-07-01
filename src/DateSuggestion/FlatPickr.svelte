@@ -4,7 +4,7 @@
   import scrollPlugin from "./FPScroller";
   import { createEventDispatcher } from "svelte";
 
-  import { Register, settings, Options, Instantce, G_CTX } from "common";
+  import { Register, settings, Options, Instantce, Global } from "common";
 
   export let selectedDates: Date[] = [],
     container: HTMLElement;
@@ -38,7 +38,7 @@
   });
 
   onMount(() => {
-    unregister = Register(undefined, undefined, G_CTX.plugin, [
+    unregister = Register(undefined, undefined, Global.plugin, [
       [
         "cursorActivity",
         (() => {

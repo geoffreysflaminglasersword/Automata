@@ -1,15 +1,17 @@
 import './Scheduling/refinersAndParsers';
 
 import * as EX from './Scheduling/examples';
+import * as ME from './MetaEdit';
 import * as chrono from 'chrono-node';
 
 import { ChroniclerSettingTab, ChroniclerSettings, DEFAULT_SETTINGS } from './Settings/settings';
 import { FuzzySuggestModal, TFile } from "obsidian";
-import { ItemView, Modal, Obsidian, Plugin, Register, Vault, WorkspaceLeaf } from './common';
+import { ItemView, Modal, Plugin, Register, Vault, WorkspaceLeaf } from './common';
 import { RRule, Weekday } from 'rrule';
+import { parseFrontMatterAliases, parseFrontMatterEntry, parseFrontMatterStringArray, parseFrontMatterTags, parseYaml } from 'obsidian';
 
 import FlatPickr from './DateSuggestion/FlatPickr.svelte';
-import { G_CTX } from "./globalContext";
+import { Global } from "./globalContext";
 import Suggestion from './DateSuggestion/Suggestion.svelte';
 import TimeRule from "./Scheduling/Rule";
 import { get } from './common';
@@ -40,7 +42,7 @@ export default class Chronicler extends Plugin {
 
 	async onload() {
 		console.log('loading Chronicler');
-		G_CTX.initialize(this.app);
+		Global.initialize(this.app);
 		await this.loadSettings();
 
 		this.addSettingTab(new ChroniclerSettingTab(this.app, this));
@@ -95,6 +97,9 @@ export default class Chronicler extends Plugin {
 
 	addAutosuggest(cm: CodeMirror.Editor) {
 		if (!cm) return;
+		Global.editor = cm;
+		console.log(`cm`, cm);
+
 		this.autosuggest = new Suggestion({
 			target: this.suggestEl,
 			props: {
@@ -120,43 +125,7 @@ export default class Chronicler extends Plugin {
 	onLayoutReady(): void {
 
 	}
-
-
-	// tryToSetupAutosuggest(): void {
-	// 	if (
-	// 		this.settings.autocompleteTriggerPhrase
-	// 	) {
-	// 		this.autosuggest = new DateSuggest(this.app, this);
-
-	// 		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-	// 			cm.on("change", this.autosuggestHandler);
-	// 		});
-	// 	} else {
-	// 		this.autosuggest = null;
-	// 		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-	// 			cm.off("change", this.autosuggestHandler);
-	// 		});
-	// 	}
-	// }
-
-
-	// private autosuggest: DateSuggest;
-
-
-	// autosuggestHandler = (
-	// 	cmEditor: CodeMirror.Editor,
-	// 	changeObj: CodeMirror.EditorChange
-	// ): boolean => {
-	// 	return this.autosuggest?.update(cmEditor, changeObj);
-	// };
-
-
-
 }
-
-
-// import { DateTime, Duration } from "luxon";
-
 
 class ChroniclerModal/*  extends FuzzySuggestModal<string>  */ extends Modal {
 	like: FlatPickr;
@@ -171,14 +140,37 @@ class ChroniclerModal/*  extends FuzzySuggestModal<string>  */ extends Modal {
 	}
 
 	constructor() {
-		super(G_CTX.app);
+		super(Global.app);
 	}
 
 	async onOpen() {
 
 		let { contentEl, containerEl } = this;
-		let like = new FlatPickr({ target: contentEl });
+		// let like = new FlatPickr({ target: contentEl });
 
+		let active = Global.workspace.getActiveFile();
+		let mc = Global.app.metadataCache.getFileCache(active);
+		let fm = mc.frontmatter;
+		let p1 = parseFrontMatterAliases(fm);
+		let p2 = parseFrontMatterEntry(fm, 'jeff');
+		let p21 = parseFrontMatterEntry(fm, 'j');
+		let p22 = parseFrontMatterEntry(fm, /j/);
+		let p23 = parseFrontMatterEntry(fm, /.*j.*/);
+		let p3 = parseFrontMatterStringArray(fm, 'alias');
+		let p4 = parseFrontMatterTags(fm);
+		console.log(`active`, active);
+		console.log(`mc`, mc);
+		console.log(`fm`, fm);
+		console.log(`p1,'\n',p2,'\n',p21,'\n',p22,'\n',p23,'\n',p3,'\n',p4,'\n'`, p1, '\n', p2, '\n', p21, '\n', p22, '\n', p23, '\n', p3, '\n', p4, '\n');
+
+		console.log();
+
+		console.log(ME.getFilesWithProperty('title'));
+		console.log(ME.getFilesWithProperty('created'));
+		console.log(await ME.getPropertiesInFile());
+		console.log(await ME.getPropertyValue('jeff'));
+		console.log(await ME.updateProperty('jeff', 'nerb'));
+		console.log(await ME.createYamlProperty('blurp', 'thun'));
 
 		// this.ac = new autocomplete({ target: this.contentEl });
 
