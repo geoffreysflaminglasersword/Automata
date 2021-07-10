@@ -1,18 +1,22 @@
 import './Scheduling/refinersAndParsers';
 
 import * as EX from './Scheduling/examples';
-import * as ME from './MetaEdit';
 import * as chrono from 'chrono-node';
 
 import { ChroniclerSettingTab, ChroniclerSettings, DEFAULT_SETTINGS } from './Settings/settings';
+import { Context, ItemView, ME, Modal, Plugin, Register, Vault, WorkspaceLeaf } from './common';
 import { FuzzySuggestModal, TFile } from "obsidian";
-import { ItemView, Modal, Plugin, Register, Vault, WorkspaceLeaf } from './common';
 import { RRule, Weekday } from 'rrule';
 import { parseFrontMatterAliases, parseFrontMatterEntry, parseFrontMatterStringArray, parseFrontMatterTags, parseYaml } from 'obsidian';
 
+import { Attributes } from "graphology-types";
+import { DirectedGraph } from "graphology";
 import FlatPickr from './DateSuggestion/FlatPickr.svelte';
 import { Global } from "./globalContext";
+import Graph from "graphology";
 import Suggestion from './DateSuggestion/Suggestion.svelte';
+import { Task } from "Task";
+import { TaskContext } from "./Context";
 import TimeRule from "./Scheduling/Rule";
 import { get } from './common';
 
@@ -22,10 +26,6 @@ import { get } from './common';
 // import autocomplete from './autocomplete.svelte';
 // import * as OU from 'obsidian-utils';
 // import { findVault, installPluginFromGithub } from 'obsidian-utils';
-
-
-
-
 
 
 
@@ -42,7 +42,7 @@ export default class Chronicler extends Plugin {
 
 	async onload() {
 		console.log('loading Chronicler');
-		Global.initialize(this.app);
+		await Global.initialize(this.app);
 		await this.loadSettings();
 
 		this.addSettingTab(new ChroniclerSettingTab(this.app, this));
@@ -64,17 +64,15 @@ export default class Chronicler extends Plugin {
 
 
 		{
-			this.registerCodeMirror((cm: CodeMirror.Editor) => {
-				console.log('codemirror', cm);
-				// cm.on("cursorActivity", (cm) => console.log("cursorActivity: ", cm));o
-
-
-			});
+			// this.registerCodeMirror((cm: CodeMirror.Editor) => {
+			// 	console.log('codemirror', cm);
+			// 	// cm.on("cursorActivity", (cm) => console.log("cursorActivity: ", cm));o
+			// });
 
 			this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-				// console.log('click', evt);
-				// console.log('click', evt);
-				// console.log('click', evt);
+				console.log('click', evt);
+				console.log('click', evt);
+				console.log('click', evt);
 				// console.log('click', evt);
 				// console.log('click', evt);
 				// console.log('click', evt);
@@ -144,41 +142,43 @@ class ChroniclerModal/*  extends FuzzySuggestModal<string>  */ extends Modal {
 	}
 
 	async onOpen() {
-
 		let { contentEl, containerEl } = this;
-		// let like = new FlatPickr({ target: contentEl });
 
-		let active = Global.workspace.getActiveFile();
-		let mc = Global.app.metadataCache.getFileCache(active);
-		let fm = mc.frontmatter;
-		let p1 = parseFrontMatterAliases(fm);
-		let p2 = parseFrontMatterEntry(fm, 'jeff');
-		let p21 = parseFrontMatterEntry(fm, 'j');
-		let p22 = parseFrontMatterEntry(fm, /j/);
-		let p23 = parseFrontMatterEntry(fm, /.*j.*/);
-		let p3 = parseFrontMatterStringArray(fm, 'alias');
-		let p4 = parseFrontMatterTags(fm);
-		console.log(`active`, active);
-		console.log(`mc`, mc);
-		console.log(`fm`, fm);
-		console.log(`p1,'\n',p2,'\n',p21,'\n',p22,'\n',p23,'\n',p3,'\n',p4,'\n'`, p1, '\n', p2, '\n', p21, '\n', p22, '\n', p23, '\n', p3, '\n', p4, '\n');
+		console.log(await ME.getYamlProp('chronicler.context'));
+		console.log(await ME.updateYamlProp('chronicler.context', ['uolo', 'asdf']));
+		console.log(await ME.getYamlProp('chronicler.context'));
+		console.log(await ME.getFilesWithProperty('chronicler.context'));
 
-		console.log();
 
-		console.log(ME.getFilesWithProperty('title'));
-		console.log(ME.getFilesWithProperty('created'));
-		console.log(await ME.getPropertiesInFile());
-		console.log(await ME.getPropertyValue('jeff'));
-		console.log(await ME.updateProperty('jeff', 'nerb'));
-		console.log(await ME.createYamlProperty('blurp', 'thun'));
+		// let active = Global.workspace.getActiveFile();
+		// let mc = Global.app.metadataCache.getFileCache(active);
+		// let fm = mc.frontmatter;
+
+		// let p1 = parseFrontMatterAliases(fm);
+		// let p2 = parseFrontMatterEntry(fm, 'jeff');
+		// let p21 = parseFrontMatterEntry(fm, 'jxx');
+		// let p22 = parseFrontMatterEntry(fm, /j/);
+		// let p23 = parseFrontMatterEntry(fm, /.*j.*/);
+		// let p3 = parseFrontMatterStringArray(fm, 'alias');
+		// let p4 = parseFrontMatterTags(fm);
+		// console.log(`active`, active);
+		// console.log(`mc`, mc);
+		// console.log(`fm`, fm);
+		// console.log(`p1,'\n',p2,'\n',p21,'\n',p22,'\n',p23,'\n',p3,'\n',p4,'\n'`, p1, '\n', p2, '\n', p21, '\n', p22, '\n', p23, '\n', p3, '\n', p4, '\n');
+
+		// console.log(ME.getFilesWithProperty('title'));
+		// console.log(ME.getFilesWithProperty('created'));
+
+
+
+
+
+		// console.log(await ME.getPropertyValue('rule'));
+		// console.log(await ME.createYamlProperty('blurp', 'thun'));
 
 		// this.ac = new autocomplete({ target: this.contentEl });
 
 		// ReactDOM.render(React.createElement(DiceRoller), (this as any).contentEl);
-
-		// const internalPlugins = (this.app as any).internalPlugins.app.plugins.plugins;
-		// const nldatesPlugin = internalPlugins["nldates-obsidian"];
-		// const parsedResult = nldatesPlugin.parseDate("@every 2 days from")
 
 		// console.log(jeff.all(() => { return count++ < 15; }));
 

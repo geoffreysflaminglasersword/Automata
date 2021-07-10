@@ -4,6 +4,12 @@ import flatpickr from "flatpickr";
 import * as RX from 'Regex';
 import { Subscriber, Unsubscriber, Updater, Writable } from "svelte/store";
 import { BlockCache, CacheItem, Editor, Pos, SectionCache, TFile, Workspace, Loc } from "obsidian";
+import { connectedComponents, stronglyConnectedComponents } from "graphology-components";
+import { reverse, subgraph } from "graphology-operators";
+import { Attributes, NodeKey } from "graphology-types";
+import Graph from 'graphology';
+import { dijkstra } from "graphology-shortest-path";
+import toposort from "toposort";
 
 
 
@@ -234,6 +240,28 @@ export class File {
         } else this.path = path;
     }
 }
+
+
+
+function getUpdateOrder(graph: Graph, nodeKey: string): string[] {
+    let component = connectedComponents(graph).find(arr => arr.includes(nodeKey));
+    return toposort(Array.from(reverse(subgraph(graph, component))).map(x => [x[0], x[1]]));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

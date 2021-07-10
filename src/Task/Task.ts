@@ -1,5 +1,6 @@
-import { File, Global } from "common";
+import { File, Global, ME } from "common";
 
+import { TFile } from "obsidian";
 import TimeRule from "Scheduling/Rule";
 
 /* TODO:
@@ -17,7 +18,7 @@ import TimeRule from "Scheduling/Rule";
  file directory
  project tag
  date
- 
+
  */
 /*
 
@@ -67,6 +68,18 @@ import TimeRule from "Scheduling/Rule";
 //     // contexts
 // }
 
+
+
+
+interface TaskMembers {
+    rule: TimeRule;
+    context: string[];
+    type: string;
+    state: string;
+    extra?: Date[];
+}
+export type YAMLProp = 'chronicler' | `chronicler.${keyof TaskMembers}`;
+
 export class TaskBase {
     rule: TimeRule;
     extra?: Date[];
@@ -97,23 +110,35 @@ export class PartialTask extends TaskBase {
     enabled = () => Array.from(this.rule.all()).concat(this.extra);
     disabled = () => [].concat(this.rule.exdates(), ...this.rule.exrules().map((v) => Array.from(v.all())));
 }
-export class Task extends TaskBase {
+
+
+export class Task extends TaskBase implements TaskMembers {
+    context: string[];
+    type: string;
+    state: string;
     // Rule
     // block ref
     // isStandarTask
     // state = settings.States...
     // automatic contexts
     // user contexts
+    file: TFile;
+    async fromFile(file: TFile) {
+        this.file = file;
+        let rule = await ME.getYamlProp('chronicler.rule', file) as string;
+        this.rule = rule ? new TimeRule(rule) : null;
+        this.extra = (await ME.getYamlProp('chronicler.extra', file) as string[])?.map(x => new Date(x));
+        return this;
+    }
 
-    constructor(taskContent: string, titleContent: string, taskLine: string, partial: PartialTask) {
-        super();
+    async fromPartial(taskContent: string, titleContent: string, taskLine: string, partial: PartialTask) {
         partial.refresh(taskLine);
         Object.assign(this, partial);
 
         console.log(titleContent);
         console.log(taskContent);
 
-        Global.create(new File('tasks', titleContent), taskContent);
+        this.file = await Global.create(new File('tasks', titleContent), taskContent);
 
         // in original file
         // check settings, add link to task using title

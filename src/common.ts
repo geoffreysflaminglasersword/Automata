@@ -1,3 +1,4 @@
+import * as ME from './MetaEdit';
 import * as RX from 'Regex';
 
 import { App, FileSystemAdapter, Plugin, PluginManifest, Vault, Workspace } from "obsidian";
@@ -9,7 +10,9 @@ import { Writable, get, writable } from "svelte/store";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
 
 import { ChroniclerSettings } from "settings";
+import { Context } from './Context';
 import { Global } from "./globalContext";
+import { YAMLProp } from './Task/Task';
 import { regexIndexOf } from 'Regex';
 import { settings } from "settings";
 
@@ -17,13 +20,13 @@ export {
     onMount, onDestroy, writable, getContext, setContext, settings,
     App, FileSystemAdapter, Plugin, Scope, Vault, Modal, Notice, PluginSettingTab,
     ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace, get,
-    getUniqueArray, If, RX, regexIndexOf, wrap, Workspace, Global, File,
+    getUniqueArray, If, RX, regexIndexOf, wrap, Workspace, Global, File, ME, Context,
 };
 
 export type {
     PluginManifest, KeymapEventHandler, Modifier,
     KeymapEventListener, ChroniclerSettings,
-    Options, Instantce, Dir, Name, Path,
+    Options, Instantce, Dir, Name, Path, YAMLProp,
 };
 
 
@@ -32,7 +35,6 @@ export const PluginRef = [
     'chronicler',
     'kanban',
 ] as const;
-
 
 
 export declare type KEY =
@@ -111,6 +113,7 @@ export type PluginSettings = { [P in PluginName]: `${Capitalize<P>}Settings` };
 export type GetPluginSettings<N extends PluginName> = `${Capitalize<N>}Settings`;
 export type TFromArray<T extends ReadonlyArray<unknown>> = T extends ReadonlyArray<infer TFromArray> ? TFromArray : never;
 
+type TFromI<T extends Readonly<Object>> = T extends Readonly<infer TFromI> ? TFromI : never;
 
 
 

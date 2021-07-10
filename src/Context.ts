@@ -1,8 +1,15 @@
-import { Dir, Name, Path } from 'common';
+import { Dir, ME, Name, Path } from 'common';
 import { IVisitee, IVisitor } from "./Visitor";
 
-export class Context implements IVisitee {
-    name: string;
+import { Attributes } from "graphology-types";
+import { Global } from "./globalContext";
+import { Task } from "Task";
+import { YAMLProp } from 'common';
+
+export abstract class Context implements IVisitee, Attributes {
+    id: string;
+    isActive: boolean;
+    constructor(id: string) { this.id = id; }
     accept<T extends IVisitor>(visitor: T): ReturnType<T['visit']> {
         return visitor.visit(this);
     };
@@ -19,9 +26,13 @@ export class FileContext extends Context {
     }
     destination: Dir;
     constructor(match: string | RegExp, destination: string) {
-        super();
+        super('jeff');
         this.match = match, this.destination = destination;
     }
+}
+
+export class PropertyContext extends Context {
+    prop: YAMLProp;
 }
 class TimeContext extends Context {
 }
@@ -37,6 +48,12 @@ export class CompositeContext extends Context {
     };
 
     addContext(ctx: Context) {
-        this.contextMap.set(ctx.name, ctx);
+        this.contextMap.set(ctx.id, ctx);
     }
+}
+
+export class TaskContext extends Context {
+    task: Task;
+    constructor(id: string, task: Task) { super(id); this.task = task; }
+
 }

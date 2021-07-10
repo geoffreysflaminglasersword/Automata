@@ -1,12 +1,17 @@
+import { ActivationVisitor, CreationVisitor } from "./Visitor";
 import { App, File, FileSystemAdapter, Plugin, PluginId, PluginManifest, Vault, Workspace } from "common";
-import { ApplicabilityVisitor, CreationVisitor } from "./Visitor";
 import { CompositeContext, Context, FileContext } from "./Context";
 import { Invalidator, MemberStoreType, SubscribableKeys, UpdatableKeys, WritablePropertize } from "./Utils";
 import { Subscriber, Writable, get, writable } from "svelte/store";
 
 import { ChroniclerSettings } from "settings";
 import CodeMirror from "codemirror";
+import { DirectedGraph } from "graphology";
 import { TFile } from "obsidian";
+import { Task } from "Task";
+import { TaskContext } from "./Context";
+
+// import Autocomplete from 'react-native-autocomplete-inp
 
 // export const globalContext = writable({
 //     taskIndex: 0,
@@ -17,33 +22,34 @@ interface ObsidianCommon { app: App; vault: Vault; workspace: Workspace; editor:
 type PrivateStoredProps = WritablePropertize<ObsidianCommon>;
 // type PrivateStoredPropKeys = keyof PrivateStoredProps;
 // export interface Obsidian extends Omit<_Obsidian, PrivateStoredPropKeys> { }
-class GlobalContext extends CompositeContext implements PrivateStoredProps {
+class GlobalContext implements PrivateStoredProps {
     contextMap = new Map<string, Context>([
         ['Test', new FileContext('task/', 'jeff/')]
     ]);
 
+    // TODO: make these writable stores
     basePath: string;
     plugins: any;
-    plugin: Plugin;
-
     currentFile: TFile;
     activeContexts: string[] = ['Test'];
-
-    SApp: Writable<App>;
-    SVault: Writable<Vault>;
     SWorkspace: Writable<Workspace>;
     SEditor: Writable<CodeMirror.Editor>;
+
+    // TODO: convert to readable
+    plugin: Plugin;
+    SApp: Writable<App>;
+    SVault: Writable<Vault>;
+
     subscribe;
     private update;
 
     constructor() {
-        super();
         let { subscribe, update } = writable(this);
         this.subscribe = subscribe;
         this.update = update;
     }
 
-    initialize(app: App) {
+    async initialize(app: App) {
         this.SApp = writable(app);
         this.SVault = writable(app.vault);
         this.SWorkspace = writable(app.workspace);
@@ -72,6 +78,16 @@ class GlobalContext extends CompositeContext implements PrivateStoredProps {
         });
         // console.log(`this.plugin`, this.plugin, this.plugins);
         // console.log(`this.plugins`, this.plugins);
+
+        let files = await ME.getFilesWithProperty('chronicler.context');
+        let graph = new DirectedGraph<Context>();
+        await Promise.all(files.map(async f => {
+            console.log(`f.path`, f.path);
+            let task = await new Task().fromFile(f);
+            graph.addNode(f.path, Object.assign({}, (new TaskContext(f.path, task))));
+        }));
+
+        console.log(`graph`, graph);
     }
 
 
@@ -80,27 +96,29 @@ class GlobalContext extends CompositeContext implements PrivateStoredProps {
         // console.log(`this.activeContexts`, this.activeContexts);
         let visitor = new CreationVisitor({ file, data });
         this.activeContexts.forEach(v => this.contextMap.get(v).accept(visitor));
+
+
         // console.log(`visitor`, visitor, file, file.path);
-        if (file.directory && !(await this.vault.adapter.exists(<string>file.directory)))
-            await this.vault.createFolder(<string>file.directory);
-        if (await this.vault.adapter.exists(<string>file.path))
-            await this.vault.adapter.remove(<string>file.path); // TODO: update file instead of overwriting
-        return await this.vault.create(<string>file.path, data ?? '');
+        if (file.directory && !(await this.vault.adapter.exists(file.directory)))
+            await this.vault.createFolder(file.directory);
+        if (await this.vault.adapter.exists(file.path))
+            await this.vault.adapter.remove(file.path); // TODO: update file instead of overwriting
+        return await this.vault.create(file.path, data ?? '');
     }
 
 
     contextApplies(ctxNames: string[]) {
-        return ctxNames.every(n => this.contextMap.get(n).accept(new ApplicabilityVisitor()));
+        return ctxNames.every(n => this.contextMap.get(n).accept(new ActivationVisitor()));
     }
 
     updateApplicableContexts() {
         this.activeContexts = []; //TODO: make event-based context updating
         for (let [key, val] of this.contextMap)
-            if (val.accept(new ApplicabilityVisitor()))
+            if (val.accept(new ActivationVisitor()))
                 this.activeContexts.push(key);
     }
 
-    getPlugin<T = Plugin>(id: PluginId): T { return this.plugins[id] as T; }
+    getPlugin<T extends Plugin = Plugin>(id: PluginId): T { return this.plugins[id] as T; }
     getSettings<PluginSettings = ChroniclerSettings>(id: PluginId): PluginSettings { return this.plugins[id].settings as PluginSettings; }
     getManifest(id: PluginId): PluginManifest { return this.plugins[id].manifest; }
 

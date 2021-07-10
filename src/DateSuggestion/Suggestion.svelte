@@ -162,7 +162,7 @@
 
     titleContent = RX.cleanHeading(titleContent);
 
-    let t = new Task(taskContent, titleContent, line, task);
+    let t = new Task().fromPartial(taskContent, titleContent, line, task);
     close();
   }
 

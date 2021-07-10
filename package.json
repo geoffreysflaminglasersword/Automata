@@ -35,8 +35,14 @@
         "@tsconfig/svelte": "^2.0.1",
         "@types/moment-range": "^4.0.0",
         "@types/react-transition-group": "^4.4.1",
+        "@types/toposort": "^2.0.3",
         "chrono-node": "^2.2.7",
         "flatpickr": "^4.6.9",
+        "graphology": "^0.20.0",
+        "graphology-components": "^1.1.0",
+        "graphology-operators": "^1.4.0",
+        "graphology-shortest-path": "^1.4.1",
+        "graphology-types": "^0.19.2",
         "match-sorter": "^6.3.0",
         "moment-range": "^4.0.2",
         "obsidian-utils": "^0.10.0",
@@ -46,6 +52,7 @@
         "react-native": "^0.64.1",
         "rollup-plugin-css-only": "^3.1.0",
         "rrule": "^2.6.8",
-        "svelte-preprocess": "^4.7.3"
+        "svelte-preprocess": "^4.7.3",
+        "toposort": "^2.0.2"
     }
 }
