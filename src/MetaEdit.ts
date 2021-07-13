@@ -9,13 +9,17 @@ import { Notice, TFile } from "obsidian";
 import { isNullOrWhitespace } from "Utils";
 import { parseYaml } from "obsidian";
 
+export async function updateYamlProps(propNames: YAMLProp[], propValues: (string | any[]), source?: TFile | string) {
+    propNames.forEach((p, i) => updateYamlProp(p, propValues[i], source));
+}
 
 
-export async function updateYamlProp(propName: YAMLProp, propValue: string | any[], file?: TFile | string) {
-    file ??= Global.currentFile;
+
+export async function updateYamlProp(propName: YAMLProp, propValue: string | any[], source?: TFile | string) {
+    source ??= Global.currentFile;
     let contents: string;
-    if (file instanceof TFile) contents = await Global.vault.cachedRead(file);
-    else contents = file;
+    if (source instanceof TFile) contents = await Global.vault.cachedRead(source);
+    else contents = source;
     let [prop, child] = propName.split('.');
     let val = typeof propValue == 'string' ? propValue : `[${propValue.join(', ')}]`;
     let newContents = child ? RX.replaceYamlSub(contents, prop, child, val) : RX.replaceYamlProp(contents, prop, val);
@@ -25,18 +29,23 @@ export async function updateYamlProp(propName: YAMLProp, propValue: string | any
     newContents ??= RX.hasYaml(contents) ? parentUpdated ? parentUpdated : parentCreated
         : `---\n${prop}:${child ? `\n  - ${child}:` : ''} ${val}\n---`.concat(contents); // create new yaml section, optionally with child
 
-    await Global.vault.modify(<TFile>file, newContents);
+    if (source instanceof TFile) await Global.vault.modify(source, newContents);
+    else return newContents;
 }
 
-export async function getYamlProp(propName: YAMLProp, file?: TFile | string) {
-    file ??= Global.currentFile;
-    let contents: string;
-    if (file instanceof TFile) contents = await Global.vault.cachedRead(file);
-    else contents = file;
+export function imGetYamlProp(propName: YAMLProp, source: string) {
     let [prop, child] = propName.split('.');
-    let match = child ? contents.match(RX.getYamlSub(prop, child)) : contents.match(RX.getYamlProp(prop));
+    let match = child ? source.match(RX.getYamlSub(prop, child)) : source.match(RX.getYamlProp(prop));
     let val = match ? match[2] : null;
     return val?.contains('[') ? val.replace('[', '').replace(']', '').split(', ') : val;
+}
+
+export async function getYamlProp(propName: YAMLProp, source?: TFile | string) {
+    source ??= Global.currentFile;
+    let contents: string;
+    if (source instanceof TFile) contents = await Global.vault.cachedRead(source);
+    else contents = source;
+    return imGetYamlProp(propName, contents);
 }
 
 

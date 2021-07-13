@@ -1,6 +1,7 @@
 import { File, Global, ME } from "common";
 
 import { TFile } from "obsidian";
+import { TaskContext } from "src/Context";
 import TimeRule from "Scheduling/Rule";
 
 /* TODO:
@@ -72,11 +73,14 @@ import TimeRule from "Scheduling/Rule";
 
 
 interface TaskMembers {
+    id: string;
     rule: TimeRule;
     context: string[];
-    type: string;
     state: string;
     extra?: Date[];
+    project?: string;
+    location?: string;
+    // type: string;
 }
 export type YAMLProp = 'chronicler' | `chronicler.${keyof TaskMembers}`;
 
@@ -112,24 +116,29 @@ export class PartialTask extends TaskBase {
 }
 
 
+
 export class Task extends TaskBase implements TaskMembers {
+    id: string;
     context: string[];
-    type: string;
     state: string;
-    // Rule
+    project?: string;
+    location?: string;
     // block ref
     // isStandarTask
     // state = settings.States...
-    // automatic contexts
-    // user contexts
     file: TFile;
+    contents: string;
     async fromFile(file: TFile) {
         this.file = file;
-        let rule = await ME.getYamlProp('chronicler.rule', file) as string;
+        this.contents = await Global.vault.cachedRead(file);
+        let rule = await ME.getYamlProp('chronicler.rule', this.contents) as string;
         this.rule = rule ? new TimeRule(rule) : null;
-        this.extra = (await ME.getYamlProp('chronicler.extra', file) as string[])?.map(x => new Date(x));
+        this.extra = (await ME.getYamlProp('chronicler.extra', this.contents) as string[])?.map(x => new Date(x));
+        this.extra?.forEach(d => this.rule?.exdate(d));
+        await this.getProps();
         return this;
     }
+
 
     async fromPartial(taskContent: string, titleContent: string, taskLine: string, partial: PartialTask) {
         partial.refresh(taskLine);
@@ -138,7 +147,17 @@ export class Task extends TaskBase implements TaskMembers {
         console.log(titleContent);
         console.log(taskContent);
 
+        this.contents = taskContent;
+        let context = new TaskContext(this);
+        this.id = context.id;
+        await ME.updateYamlProp('chronicler.id', this.id, this.contents);
+
+        Global.addNode(context);
+
+
+        //TODO: use default task directory
         this.file = await Global.create(new File('tasks', titleContent), taskContent);
+        await this.getProps();
 
         // in original file
         // check settings, add link to task using title
@@ -147,6 +166,13 @@ export class Task extends TaskBase implements TaskMembers {
         // always focus on title after creation for easy edit
         // only focus on title if no contexts resolve
         // don't open file after createion ever
+    }
+
+    async getProps() {
+        this.id ??= await ME.getYamlProp('chronicler.id', this.contents) as string;
+        this.state = await ME.getYamlProp('chronicler.state', this.contents) as string;
+        this.project = await ME.getYamlProp('chronicler.project', this.contents) as string;
+        this.location = await ME.getYamlProp('chronicler.location', this.contents) as string;
     }
 
     //onUpdate

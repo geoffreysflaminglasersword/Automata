@@ -10,8 +10,7 @@
   // State
   export let targetRef: HTMLElement;
 
-  $: ({ SApp, SEditor, SWorkspace, plugin, editor } = Global);
-  $: console.log("Here: ", plugin, Global.plugin);
+  let { SApp, SEditor, SWorkspace, plugin, editor } = Global;
   let scope = new Scope();
 
   // Validation

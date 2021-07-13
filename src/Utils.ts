@@ -233,7 +233,6 @@ export class File {
         this.name = value.match(RX.matchFileName)?.first().replace(/\.\w+/, '') ?? '';
     }
     constructor(path: Dir | Path, name?: Name) {
-        console.log(`dir,name`, path, name);
         if (name) {
             this.directory = path;
             this.name = name;
@@ -243,12 +242,16 @@ export class File {
 
 
 
-function getUpdateOrder(graph: Graph, nodeKey: string): string[] {
+export function getUpdateOrder(graph: Graph, nodeKey: string): string[] {
     let component = connectedComponents(graph).find(arr => arr.includes(nodeKey));
-    return toposort(Array.from(reverse(subgraph(graph, component))).map(x => [x[0], x[1]]));
+    let res = toposort(Array.from(reverse(subgraph(graph, component))).map(x => [x[0], x[1]]));
+    res.remove(nodeKey);
+    return res;
 }
 
-
+export function getAttrUpdateOrder<T>(graph: Graph<T>, nodeKey: string): T[] {
+    return getUpdateOrder(graph, nodeKey).map(key => graph.getNodeAttributes(key));
+}
 
 
 

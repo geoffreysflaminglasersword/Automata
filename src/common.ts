@@ -2,15 +2,15 @@ import * as ME from './MetaEdit';
 import * as RX from 'Regex';
 
 import { App, FileSystemAdapter, Plugin, PluginManifest, Vault, Workspace } from "obsidian";
+import { Context, Node } from './Context';
 import { Dir, File, If, Name, Path, Register, getUniqueArray, isNullOrWhitespace, wrap, zip } from "./Utils";
 import type { Instantce, Options } from "./Utils";
-import { ItemView, KeymapEventHandler, KeymapEventListener, Modal, Modifier, } from "obsidian";
+import { ItemView, KeymapEventHandler, KeymapEventListener, Modal, Modifier, TFile } from "obsidian";
 import { Notice, PluginSettingTab, Scope, Setting, WorkspaceLeaf } from "obsidian";
 import { Writable, get, writable } from "svelte/store";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
 
 import { ChroniclerSettings } from "settings";
-import { Context } from './Context';
 import { Global } from "./globalContext";
 import { YAMLProp } from './Task/Task';
 import { regexIndexOf } from 'Regex';
@@ -20,13 +20,14 @@ export {
     onMount, onDestroy, writable, getContext, setContext, settings,
     App, FileSystemAdapter, Plugin, Scope, Vault, Modal, Notice, PluginSettingTab,
     ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace, get,
-    getUniqueArray, If, RX, regexIndexOf, wrap, Workspace, Global, File, ME, Context,
+    getUniqueArray, If, RX, regexIndexOf, wrap, Workspace, Global, File, ME, Context, TFile,
 };
 
 export type {
     PluginManifest, KeymapEventHandler, Modifier,
     KeymapEventListener, ChroniclerSettings,
     Options, Instantce, Dir, Name, Path, YAMLProp,
+    Node,
 };
 
 

@@ -36,6 +36,7 @@
         "@types/moment-range": "^4.0.0",
         "@types/react-transition-group": "^4.4.1",
         "@types/toposort": "^2.0.3",
+        "@types/uuid": "^8.3.1",
         "chrono-node": "^2.2.7",
         "flatpickr": "^4.6.9",
         "graphology": "^0.20.0",
@@ -53,6 +54,8 @@
         "rollup-plugin-css-only": "^3.1.0",
         "rrule": "^2.6.8",
         "svelte-preprocess": "^4.7.3",
-        "toposort": "^2.0.2"
+        "toposort": "^2.0.2",
+        "typescript-super-set": "^1.0.0",
+        "uuid": "^8.3.2"
     }
 }

@@ -1,18 +1,36 @@
-import { Dir, ME, Name, Path } from 'common';
+import { Dir, File, ME, Name, Path } from 'common';
 import { IVisitee, IVisitor } from "./Visitor";
 
 import { Attributes } from "graphology-types";
 import { Global } from "./globalContext";
 import { Task } from "Task";
 import { YAMLProp } from 'common';
+import { v4 as uuidv4 } from 'uuid';
 
-export abstract class Context implements IVisitee, Attributes {
-    id: string;
-    isActive: boolean;
-    constructor(id: string) { this.id = id; }
+//NOTE: contexts should contain information that helps determine whether or not it applies, they should not contain behavior
+export abstract class Node implements IVisitee, Attributes {
+    id: string = uuidv4();
+    isActive: boolean = false;
+    constructor(id?: string) { this.id = id ?? this.id; }
     accept<T extends IVisitor>(visitor: T): ReturnType<T['visit']> {
         return visitor.visit(this);
     };
+}
+export class Filter extends Node {
+
+}
+
+type EXEC = (file: File, data: string) => void;
+export class Rule extends Filter {
+    execute: EXEC;
+    constructor(exec: EXEC) { super(); this.execute = exec; }
+}
+
+export abstract class Any extends Node {
+
+}
+export abstract class Context extends Node {
+
 }
 export class FileContext extends Context {
     _match: string | RegExp;
@@ -24,15 +42,15 @@ export class FileContext extends Context {
     public set match(value: string | RegExp) {
         this._match = value;
     }
-    destination: Dir;
-    constructor(match: string | RegExp, destination: string) {
-        super('jeff');
-        this.match = match, this.destination = destination;
+    constructor(match: string | RegExp) {
+        super();
+        this.match = match;
     }
 }
 
 export class PropertyContext extends Context {
     prop: YAMLProp;
+    desired: string;
 }
 class TimeContext extends Context {
 }
@@ -54,6 +72,6 @@ export class CompositeContext extends Context {
 
 export class TaskContext extends Context {
     task: Task;
-    constructor(id: string, task: Task) { super(id); this.task = task; }
+    constructor(task: Task, id?: string) { super(id); this.task = task; }
 
 }
