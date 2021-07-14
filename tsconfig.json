@@ -31,7 +31,6 @@
     "paths": {
       "Scheduling/*": [ "src/Scheduling/*" ],
       "Utils": [ "src/Utils" ],
-      "Task": [ "src/Task/Task" ],
       "Regex": [ "src/Regex" ],
       "common": [ "src/common" ],
       "settings": [ "src/Settings/settings" ],

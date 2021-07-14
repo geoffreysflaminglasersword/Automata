@@ -1,6 +1,6 @@
-import { Context, FileContext, PropertyContext, Rule, TaskContext } from "./Context";
-import { File, Node as GNode, Global, ME, TFile } from "common";
-import { PropType, getAttrUpdateOrder, getUpdateOrder } from 'Utils';
+import { FileContext, PropertyContext, Rule, TaskContext } from "./Node";
+import { File, Node as GNode, Global, ME } from "common";
+import { PropType, getAttrUpdateOrder } from 'Utils';
 
 import Graph from "graphology";
 
@@ -20,35 +20,6 @@ export abstract class NodeVisitor<T extends NodeVisitor<T>> extends Visitor<T> {
     abstract visit(node: GNode): any;
 }
 
-export class Activator extends NodeVisitor<Activator> {
-    resource: { file?: File; data?: string; };
-    visit(node: GNode): boolean {
-        let { file, data } = this.resource;
-        if (node instanceof FileContext)
-            console.log('asdfasdfASDFASDFASDF: ', Global.currentFile.path, node.match, Global.currentFile.path.match(node.match));
-        if (node instanceof FileContext)
-            node.isActive = !!('/' + Global.currentFile.path).match(node.match);
-        if (node instanceof TaskContext)
-            node.isActive = node.task.state == 'done';
-        if (node instanceof PropertyContext)
-            node.isActive = ME.imGetYamlProp(node.prop, data) == node.desired;
-        if (node instanceof Rule) {
-            getAttrUpdateOrder(Global.graph, node.id).forEach(a => a.node.accept(this));
-            console.log(`node.id,Global.graph`, node.id, Global.graph, Global.graph.neighbors(node.id));
-            node.isActive = true;
-            for (const [neighbor, attributes] of Global.graph.outNeighborEntries(node.id)) {
-                console.log('ASD:', attributes.node, Global.currentFile);
-                if (!attributes.node.isActive) {
-                    node.isActive = false;
-                    break;
-                }
-            };
-        }
-        console.log('act', node.isActive);
-
-        return node.isActive;
-    }
-}
 
 export class Equare extends NodeVisitor<Equare> {
     resource: { other: GNode; };
@@ -61,22 +32,30 @@ export class Equare extends NodeVisitor<Equare> {
             return node.task.id == (<TaskContext>other).task.id;
         else if (node instanceof Rule)
             return node.execute.toString() == (<Rule>other).execute.toString();
-        else return JSON.stringify(node) === JSON.stringify(other);
+        else try { return JSON.stringify(node) === JSON.stringify(other); }
+        catch { return false; }
     }
 }
 
-// class Filter {
-//     filters: string[];
-//     if = (active: string[]) => this.filters.every(x => active.includes(x)) ? this : null;
+export class Activator extends NodeVisitor<Activator> {
+    resource: { file?: File; data?: string; };
+    visit(node: GNode): boolean {
+        let { file, data } = this.resource;
+        if (node instanceof FileContext)
+            node.isActive = !!('/' + Global.currentFile.path).match(node.match);
+        if (node instanceof TaskContext)
+            node.isActive = node.task.state == 'done';
+        if (node instanceof PropertyContext)
+            node.isActive = ME.getYamlProp(node.prop, data) == node.desired;
+        if (node instanceof Rule) {
+            getAttrUpdateOrder(Global.graph, node.id).forEach(a => a.node.accept(this));
+            node.isActive = true;
+            for (const [neighbor, attributes] of Global.graph.outNeighborEntries(node.id))
+                if (!attributes.node.isActive) { node.isActive = false; break; }
+        }
+        return node.isActive;
+    }
+}
 
-// }
-// class Transformation extends Filter implements IVisitor {
-//     then: Action;
-//     args: { file?: File; };
-//     visit(context: Context) {
-//         let file = this.args.file ?? Global.currentFile;
-//         if (context instanceof PropertyContext)
-//             ME.updateYamlProp();
-//     }
-//     prop: Property;
-// }
+
+

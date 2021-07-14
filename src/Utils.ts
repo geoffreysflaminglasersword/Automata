@@ -14,6 +14,7 @@ import toposort from "toposort";
 
 
 type SectionType = "list" | "code" | "paragraph" | "heading";
+
 export type Options = flatpickr.Options.Options;
 export type Instantce = flatpickr.Instance;
 
@@ -34,7 +35,6 @@ export type MemberStoreType<T extends V, U, V extends Able<U> = UpdatableKeys<U>
 export type WritablePropertize<T> = {
     [Prop in keyof T as `S${Capitalize<string & Prop>}`]: Writable<T[Prop]>;
 };
-
 
 
 
@@ -75,37 +75,6 @@ export function* zip<T extends Array<any>>(...toZip: MakeIterable<T>): Generator
     }
 }
 
-interface ConstructorOf<T> {
-    new(...args: ReadonlyArray<never>): T;
-}
-
-export function If<T>(thing: T) {
-    const actions = {
-        Is<U extends T>(type: ConstructorOf<U>) {
-            console.log('In is');
-            return {
-                then(fn: (_: U) => void) {
-                    if (thing instanceof type) { fn(thing); return null; }
-                    return actions;
-                }
-            };
-        }
-    };
-    return actions;
-}
-
-
-
-declare global {
-    interface Function {
-        multi<T extends any[]>(...args: T): void;
-    }
-}
-
-Function.prototype.multi = function <T extends any[]>(...args: T) {
-    args.forEach((v) => (<Function>this).call(v));
-};
-
 
 
 
@@ -136,6 +105,7 @@ export function Register(
         console.log(`scope,keyEvs,plugin,evs`, scope, keyEvs, plugin, evs);
         throw new Error('In Utils::Register: must have either or both of scope and keyEvs, and plugin and evs');
     };
+    console.log("Register: ", scope, plugin);
     return register(
         scope,
         keyEvs?.map((v) => { return { mods: v[0] as Modifier[], key: v[1] as KEY, func: v[2] as KeymapEventListener }; }),
@@ -263,6 +233,16 @@ export function getAttrUpdateOrder<T>(graph: Graph<T>, nodeKey: string): T[] {
 
 
 
+
+declare global {
+    interface Function {
+        multi<T extends any[]>(...args: T): void;
+    }
+}
+
+Function.prototype.multi = function <T extends any[]>(...args: T) {
+    args.forEach((v) => (<Function>this).call(v));
+};
 
 
 

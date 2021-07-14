@@ -35,8 +35,7 @@
   $: line = editor.getLine(cursor.line);
   $: triggerPos = regexIndexOf(line, RX.getFirstAtSign, 0);
   $: foundTrigger = triggerPos >= 0;
-  $: shouldOpen = isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
-  // $: shouldOpen = !escaped && isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
+  $: shouldOpen = !escaped && isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
   $: shouldClose = !foundTrigger || cursor.ch <= Math.max(triggerPos, 0);
 
   $: content = line.replace(new RegExp(".*" + trigger), "");
@@ -44,16 +43,10 @@
   $: currentWord = content.substring(0, cursor.ch - excess).match(RX.rxLastWordOrSpace)[0];
 
   // Reactive Logic
-  $: if (shouldClose && isOpen) {
-    // console.log("ASDFFDSA", shouldClose, foundTrigger, cursor.ch, triggerPos);
-    close();
-  } else if (shouldOpen) {
-    isOpen = true;
-    active = $SWorkspace.getActiveFile();
-  }
-  $: if (!shouldClose && shouldOpen) {
-    editor.addWidget(cursor, targetRef, true);
-  }
+  $: if (shouldClose && isOpen) close();
+  else if (shouldOpen) open();
+  $: if (!shouldClose && shouldOpen) editor.addWidget(cursor, targetRef, true);
+
   // Handlers
   function update(cm: CodeMirror.Editor, change: CodeMirror.EditorChange) {
     console.log("Btiches");
@@ -69,11 +62,13 @@
     console.log("CALLED OPEN");
     isOpen = true;
     active = $SWorkspace.getActiveFile();
+    sunregister = sregister();
   }
   function close(): void {
+    if (!isOpen) return;
     console.log("CALLED CLOSE");
-    (isOpen = false), (selectedDates = []), targetRef.detach();
-    // (escaped = true), (isOpen = false), (selectedDates = []), targetRef.detach();
+    (escaped = true), (isOpen = false), (selectedDates = []), targetRef.detach();
+    sunregister();
   }
   function select(event: KeyboardEvent | MouseEvent) {
     if (!isOpen) return;
@@ -94,25 +89,26 @@
     console.log(`isOpen:Select: `, isOpen);
   }
 
-  let unregister: () => void;
-  onDestroy(() => unregister());
+  let sregister = () =>
+    Register(scope, [
+      [[], "Enter", select],
+      [[], "Tab", select],
+      [[], "Escape", close],
+      [[insertMod], "Enter", select],
+    ]);
+  let pregister = () =>
+    Register(undefined, undefined, plugin, [
+      ["change", update],
+      ["cursorActivity", onCursorMove],
+    ]);
+
+  let sunregister: () => void;
+  let punregister: () => void;
+  onDestroy(() => punregister());
   onMount(() => {
     console.log("Instantiated Suggestion 2: ", escaped, isOpen, cursor, shouldClose, shouldOpen);
     task = new PartialTask(line);
-    unregister = Register(
-      scope,
-      [
-        [[], "Enter", select],
-        [[], "Tab", select],
-        [[], "Escape", close],
-        [[insertMod], "Enter", select],
-      ],
-      plugin,
-      [
-        ["change", update],
-        ["cursorActivity", onCursorMove],
-      ]
-    );
+    punregister = pregister();
   });
 
   // Helpers

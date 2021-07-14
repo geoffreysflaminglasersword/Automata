@@ -44,13 +44,9 @@
   $: currentWord = content.substring(0, cursor.ch - excess).match(RX.rxLastWordOrSpace)[0];
 
   // Reactive Logic
-  $: if (shouldClose && isOpen) {
-    // console.log("ASDFFDSA", shouldClose, foundTrigger, cursor.ch, triggerPos);
-    close();
-  } else if (shouldOpen) {
-    isOpen = true;
-    active = $SWorkspace.getActiveFile();
-  }
+  $: if (shouldClose && isOpen) close();
+  else if (shouldOpen) open();
+
   $: if (!shouldClose && shouldOpen) {
     editor.addWidget(cursor, targetRef, true);
   }
@@ -69,10 +65,12 @@
     console.log("CALLED OPEN");
     isOpen = true;
     active = $SWorkspace.getActiveFile();
+    // sunregister = sregister();
   }
   function close(): void {
     console.log("CALLED CLOSE");
     (isOpen = false), (selectedDates = []), targetRef.detach();
+    // sunregister();
     // (escaped = true), (isOpen = false), (selectedDates = []), targetRef.detach();
   }
   function select(event: KeyboardEvent | MouseEvent) {
@@ -94,25 +92,26 @@
     console.log(`isOpen:Select: `, isOpen);
   }
 
-  let unregister: () => void;
-  onDestroy(() => unregister());
+  let sregister = () =>
+    Register(scope, [
+      [[], "Enter", select],
+      [[], "Tab", select],
+      [[], "Escape", close],
+      [[insertMod], "Enter", select],
+    ]);
+  let pregister = () =>
+    Register(undefined, undefined, plugin, [
+      ["change", update],
+      ["cursorActivity", onCursorMove],
+    ]);
+
+  let sunregister: () => void;
+  let punregister: () => void;
+  onDestroy(() => punregister());
   onMount(() => {
     console.log("Instantiated Suggestion 2: ", escaped, isOpen, cursor, shouldClose, shouldOpen);
     task = new PartialTask(line);
-    unregister = Register(
-      scope,
-      [
-        [[], "Enter", select],
-        [[], "Tab", select],
-        [[], "Escape", close],
-        [[insertMod], "Enter", select],
-      ],
-      plugin,
-      [
-        ["change", update],
-        ["cursorActivity", onCursorMove],
-      ]
-    );
+    punregister = pregister();
   });
 
   // Helpers

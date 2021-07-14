@@ -16,7 +16,7 @@
     suggestions = getUniqueArray([...suggestions, ...matchSorter(likely, firstChar)]).slice(0, 7);
   $: current = suggestions[current_index];
 
-  let { SApp, SEditor, plugin } = Global;
+  let { app, SEditor, plugin } = Global;
   let current_index: number = 0;
 
   onMount(() => {
@@ -30,12 +30,12 @@
       plugin,
       [["keyHandled", () => (current_index = 0)]]
     );
-    (<any>$SApp).keymap.pushScope(scope);
+    (<any>app).keymap.pushScope(scope);
   });
   onDestroy(() => {
     $SEditor.removeKeyMap(disableTab);
     unregister();
-    (<any>$SApp).keymap.popScope(scope);
+    (<any>app).keymap.popScope(scope);
   });
   let unregister: () => void;
   const disableTab = { Tab: (cm: CodeMirror.Editor) => cm.replaceSelection(" ", "end") };

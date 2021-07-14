@@ -13,7 +13,7 @@ export const matchYamlEnd = /(^---.*?)(---)/sm;
 export const hasYaml = (contents: string) => matchYaml.test(contents);
 
 export const getYamlProp = (prop: string) =>
-    new RegExp(`(^---(?:.*\\n)*?${prop}: ?)(.*)(\\n(.*(?:\\n|$))*)`);
+    new RegExp(`(^---(?:.*\\n)*?${prop}: )(.*)(\\n(.*(?:\\n|$))*)`);
 export const getYamlSub = (parent: string, child: string) =>
     new RegExp(`(^---(?:.*?\\n)*?${parent}:(?:.*\\n)+?.* - ${child}: )(.+)((?:.*(?:\\n|$))*)`);
 

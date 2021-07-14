@@ -245,7 +245,7 @@ export class MetaClause extends Clause {
                     // for now, we'll just assume that if rrule errors out, then chrono's result was good enough already
                 }
         }
-        console.log('EXITING', this);
+        // console.log('EXITING', this);
     }
 
     public setClause(value: string): void { throw new Error("Called MetaClause.setClause"); } // doing this for now to make sure nothing accidentally does holiday preprocessing

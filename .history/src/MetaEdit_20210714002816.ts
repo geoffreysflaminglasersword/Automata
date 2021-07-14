@@ -14,8 +14,6 @@ export function updateYamlProp(propName: YAMLProp, propValue: string | any[], so
     let parentUpdated = (!newContents && child) ? RX.nullReplace(source, RX.getYamlProp(prop), `$1\n  - ${child}: ${val}$3`) : null;
     let parentCreated = parentUpdated ? null : source.replace(RX.matchYamlEnd, `$1${prop}:${child ? `\n  - ${child}:` : ''} ${val}\n$2`);
 
-    console.log(source.match(RX.getYamlProp(prop)), source.replace(RX.getYamlProp(prop), `$1\n  - ${child}: ${val}$3`));
-
     console.log(`child,ewContents,parentUpdated,parentCreated,`, child, newContents, parentUpdated, parentCreated,);
 
     newContents ??= RX.hasYaml(source) ? parentUpdated ? parentUpdated : parentCreated

@@ -10,44 +10,42 @@ import { RRule, RRuleSet } from 'rrule';
 import { ParsingComponents } from 'chrono-node/dist/results';
 import { moment } from 'src/moment_range';
 
-//NOTE: all of this business with using rrule and chrono is messy and error-prone enough that I'll likely implement my own parser, but it works for mvp
-
-
 /* 
     TODO: 
     - need to extract comma and dash sequences
-    - extract 'for n times', 'n times', 'x10'
-        - needs to apply for every clause unless clause has it's own times specifier
-    - mox,monx,tux,tuex,etc. could be shorthand for mondays,tuesdays,etc.
+    - extract for n times, n times, x10
+        - needs to apply for every clause unless clause individuall has times specifier
+    - mox,monx,tux,tuex,etc. should be shorthand for mondays,tuesdays,etc.
     - dash/plus immediatly preceding should convert to except/include, i.e. 'every other day -monx +tux'
-    - the 'and' conjunction should duplicate the preceeding metaclause: 'every day except thursdays and fridays'  => 
-        'every day except every thursday except every friday'
+    - the and conjunction should duplicate the preceeding metaclause: 'every day except thursdays and fridays'
 */
 export default class TimeRule extends RRuleSet {
     clauses: MetaClause[] = [];
     settings: ChroniclerSettings;
-    sanitizedString: string;
+    originalString: string;
 
 
-    constructor(public originalString: string) {
+    constructor(input: string) {
         super(true);
         this.settings = get(settings);
+        this.originalString = input;
         settings.subscribe((v) => this.settings = v);
-        this.sanitizedString = SanitizeRule(this.originalString);
-
+        input = SanitizeRule(input);
         const singleCommaSet = new RegExp(/(?<=^[^,]*)\S+, ?(?:\S+(?:,(?: and)? ?)?)+(?=(?:[^,])*$)/gm);
         const doubleCommaSet = new RegExp(/\S+?, ?(?:\S+(?:,( and)? ?)?)+?(?= \S+?,(?:\S,?)+)/gm);
         const range = new RegExp('\\w*?(?<!' + ANY_ALL_CLAUSE + ') ?(\\w+ - (?:\\w* \\d+\\w+|\\w+ \\d+|\\w+))', 'gim');
 
 
 
-        let types = GetClauses(this.sanitizedString, ANY_META, E.TYPES);
-        let clauses = GetClauses(this.sanitizedString, ANY_META, E.CLAUSES);
+        let types = GetClauses(input, ANY_META, E.TYPES);
+        let clauses = GetClauses(input, ANY_META, E.CLAUSES);
+        // console.log(input, '\n', types, '\n', clauses, '\n');
 
         let preclauses = new Array<string>();
         for (let [type, clause] of zip(types, clauses)) {
             let match = clause.match(range);
 
+            // I pray no one ever sees this
             if (match) {
                 let start = chrono.casual.parse(clause).first().start as ParsingComponents;
                 let end = chrono.casual.parse(clause).first().end as ParsingComponents;
@@ -55,9 +53,25 @@ export default class TimeRule extends RRuleSet {
                 let certain = start.getCertainComponents();
                 // console.log(certain);
                 let r = moment.range(start.date(), end.date());
+                // for now we're just going to bother with day ranges
+                {// let snap: unitOfTime.Diff =
+                    // 	certain.includes('hour')
+                    // 		? 'hours'
+                    // 		: certain.some((c) => ['day', 'weekday'].includes(c))
+                    // 			? 'days'
+                    // 			: certain.includes('month')
+                    // 				? 'months'
+                    // 				: 'years';
+                }
 
                 r = r.snapTo('days');
                 let a = Array.from(r.by('days'));
+                // switch (snap) {
+                // 	case 'hours': break;
+                // 	case 'days': clause = clause.replace(range, a.map((m) => m.toDate().toLocaleString('en-us', { weekday: 'long' })).join(',')); break;
+                // 	case 'months': clause = clause.replace(range, a.map((m) => m.toDate().toLocaleString('en-us', { month: 'long' })).join(',')); break;
+                // 	case 'years': clause = clause.replace(range, a.map((m) => m.toDate().toLocaleString('en-us', { year: 'numeric' })).join(',')); break;
+                // }
 
                 if (certain.includes('month')) { // did this because the way we do comma delimited sets means you can't have 'include feb 02,feb 03,...'
                     for (let i of a.map((m) => m.toDate())) {
@@ -71,11 +85,13 @@ export default class TimeRule extends RRuleSet {
             }
             console.log('Pre-comma replace: ', type, clause);
             match = clause.match(singleCommaSet) ?? clause.match(doubleCommaSet);
+            //TODO: add split composit param so that e.g. 'every quarter'=>'every jan,april,july,sept' knows to divide the max event setting by 4
             if (match) { for (let i of match[0].split(',')) if (i !== '') preclauses.push(clause.replace(match[0], i)); }
             else preclauses.push(clause);
 
 
             for (let pc of preclauses) {
+                // console.log('Post-comma replace, Pre-MClause: ', type, pc);
                 let mc = new MetaClause(type, pc);
                 this.clauses.push(mc);
                 if (mc.isRecurrent) this.createRule(mc);
