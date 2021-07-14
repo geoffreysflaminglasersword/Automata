@@ -14,9 +14,15 @@ type StoredProps = WritablePropertize<{ workspace: Workspace; editor: CodeMirror
 let nodeEquare = (first: GNode, second: GNode) => first.accept(new Equare({ other: second })) ? 0 : -1;
 
 
+//FUTURE: I'd like to be able to do event based stuff as well, not just contextual
+// i.e. when task is moved to a new lane, record the date it was moved
 
+//NOTE: One thing that is quite annoying about Todoist it the friction there is for seeing completed tasks
+//TODO: make it so ctrl+click on the calendar opens a board with the tasks completed on that day
+//also, of course, make it possible to filter a board by 'completed before yesterday' for example
+//TODO: when rules are more fleshed out, make sure that a user can rename a rule (replace it's id) and select/compose multiple rules
 
-//TODO: could make global context a Visitee so that other plugins can write their own graph visitors
+//TODO:57.5 could make global context a Visitee so that other plugins can write their own graph visitors
 
 /** 
  * Manages and evaluates the context graph 
@@ -115,10 +121,15 @@ class GlobalContext implements StoredProps {
 
             ... those were examples of contexts affecting task creation...
 
-            We'd also like to be able to filter what tasks are visible in boards using the same system:
+            We'd also like to be able to filter what tasks are visible in kanban boards using the same system:
                 if I'm on board B, task A should show up after task Z is complete or due-date D has passed
                 if I'm on board B, and I set the manual context to 'in my room,' I see only tasks with the location
                     attribute set to room
+            Even further, we'd like to be able to do things with kanban lanes like:
+                if task is in lane L, set status to 'in Progress'
+            Extra examples:
+                if I've written 1000 words today set Task X to 'done'
+
         */
         {
             let dir = new FileContext(/\/tasks/);

@@ -33,13 +33,13 @@ export default function scrollPlugin(): Plugin {
   };
 }
 
-//NOTE: might use year scrolling at some point
+//NOTE:20 might use year scrolling at some point
 
 
 
 
 
-//TODO: rework positioning logic from flatpickr to auto adjust width and always be centered on cursor (and not wrap)
+//TODO:150 rework positioning logic from flatpickr to auto adjust width and always be centered on cursor (and not wrap)
 
 /*
 

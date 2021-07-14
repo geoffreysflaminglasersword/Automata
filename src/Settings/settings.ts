@@ -75,7 +75,7 @@ export class ChroniclerSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     })
             );
-        new Setting(containerEl) // TODO: use number input rather than slider
+        new Setting(containerEl) // TODO:210 use number input rather than slider
             .setName('Default Number of Events for Recurrances')
             .setDesc('If you don\'t include "for n times" in your recurrance, this is is how many events will be produced by default. Reminder: if you\'d like a recurreance to run indefinitely, add the keyword \'forever\', e.g. \'every week forever\'')
             .addSlider((sc) =>

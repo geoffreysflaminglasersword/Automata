@@ -24,8 +24,7 @@
   let active: TFile;
   let isOpen = false,
     isSingleCursor = true,
-    chosen = "",
-    escaped = false;
+    chosen = "";
   let task: PartialTask,
     selectedDates: Date[] = [];
 
@@ -35,8 +34,7 @@
   $: line = editor.getLine(cursor.line);
   $: triggerPos = regexIndexOf(line, RX.getFirstAtSign, 0);
   $: foundTrigger = triggerPos >= 0;
-  $: shouldOpen = isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
-  // $: shouldOpen = !escaped && isSingleCursor && foundTrigger && !document.querySelector(".suggestion-container");
+  $: shouldOpen = isSingleCursor && foundTrigger && !document.querySelector(".suggestion");
   $: shouldClose = !foundTrigger || cursor.ch <= Math.max(triggerPos, 0);
 
   $: content = line.replace(new RegExp(".*" + trigger), "");
@@ -44,24 +42,18 @@
   $: currentWord = content.substring(0, cursor.ch - excess).match(RX.rxLastWordOrSpace)[0];
 
   // Reactive Logic
-  $: if (shouldClose && isOpen) {
-    // console.log("ASDFFDSA", shouldClose, foundTrigger, cursor.ch, triggerPos);
-    close();
-  } else if (shouldOpen) {
-    isOpen = true;
-    active = $SWorkspace.getActiveFile();
-  }
-  $: if (!shouldClose && shouldOpen) {
-    editor.addWidget(cursor, targetRef, true);
-  }
+  $: if (shouldClose && isOpen) close();
+  else if (shouldOpen) open();
+  $: if (!shouldClose && shouldOpen) editor.addWidget(cursor, targetRef, true);
+
   // Handlers
   function update(cm: CodeMirror.Editor, change: CodeMirror.EditorChange) {
     console.log("Btiches");
     if (editor !== cm) close();
-    (escaped = false), (editor = cm), (isSingleCursor = change.text.length == 1);
+    (editor = cm), (isSingleCursor = change.text.length == 1);
   }
   function onCursorMove(cm: CodeMirror.Editor) {
-    console.log("Btiches b");
+    console.log("asdffdsa", cm == editor, cm === editor);
     if (editor !== cm) close();
     (editor = cm), (cursor = editor.getCursor());
   }
@@ -97,7 +89,7 @@
   let unregister: () => void;
   onDestroy(() => unregister());
   onMount(() => {
-    console.log("Instantiated Suggestion 2: ", escaped, isOpen, cursor, shouldClose, shouldOpen);
+    console.log("Instantiated Suggestion 2: ", isOpen, cursor, shouldClose, shouldOpen);
     task = new PartialTask(line);
     unregister = Register(
       scope,

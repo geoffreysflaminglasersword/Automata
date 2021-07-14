@@ -10,9 +10,18 @@ import { RRule, RRuleSet } from 'rrule';
 import { ParsingComponents } from 'chrono-node/dist/results';
 import { moment } from 'src/moment_range';
 
-//NOTE: all of this business with using rrule and chrono is messy and error-prone enough that I'll likely implement my own parser, but it works for mvp
+//NOTE:0 all of this business with using rrule and chrono is messy and error-prone enough that I'll likely implement my own parser, but it works for mvp
 
-
+//TODO: TimeRule's are currently heavily oriented towards tasks that are accomplished once per day
+// Ideally, we'll support not just tasks, but habits... things that happen multiple times a day
+// e.g. drink 4oz @remind every hour from 6a till 9p 
+//FUTURE: would be awesome to auto-sense units like in the previous example, and when someone completes the task a popup asks them to 
+// confirm (in this case) how much they drank. Any quantity followed by a unit followed by a descripter (like 'of water') could 
+// automatically be added to the tasks metadata
+//NOTE: reminders can be attached to tasks or be by themselves as above, a non-task reminder is still it's own file, it just won't show up in kanban boards and doesn't have a normal rule
+// reminders won't show up in kanban boards (unless, I suppose, if each task dropdown had an edit-reminder button)
+// tasks won't trigger any reminder notifications by default
+// FUTURE: ideally, one would be able to change the default reminder tone by linking to an audio file: '@remind tomorrow at 6p [[screaming_goat.mp3]]
 /* 
     TODO: 
     - need to extract comma and dash sequences
@@ -22,6 +31,7 @@ import { moment } from 'src/moment_range';
     - dash/plus immediatly preceding should convert to except/include, i.e. 'every other day -monx +tux'
     - the 'and' conjunction should duplicate the preceeding metaclause: 'every day except thursdays and fridays'  => 
         'every day except every thursday except every friday'
+    - replace 'waiting on' with 'after'
 */
 export default class TimeRule extends RRuleSet {
     clauses: MetaClause[] = [];
@@ -112,7 +122,7 @@ export default class TimeRule extends RRuleSet {
     }
 
 
-    // for some reason exdates/rules don't work properly unless they're updated to current time, TODO: will figure out later
+    // for some reason exdates/rules don't work properly unless they're updated to current time, TODO:220 will figure out later
     tickleExDates() {
         let x = new Date();
         console.log("tickleDates: %c" + x, 'color:red');
@@ -157,10 +167,9 @@ export default class TimeRule extends RRuleSet {
 
 
 
-// TODO: implement better validation at the clause level, include validation that dates don't use 05-05-2020 (dash notation) 
+// TODO:80 implement better validation at the clause level, include validation that dates don't use 05-05-2020 (dash notation) 
 function SanitizeRule(input: string) {
-    //TODO: make sure to use the configured triggerphrase instead of @
-    //TODO: make sure that this replaces up to the last @, e.g. '@every day @every week'
+    //TODO:120 make sure that this replaces up to the last @, e.g. '@every day @every week'
     input = input.replace(/.*@ ?(include)?/i, 'include '); // everything before and including '@' isn't important, default to include
     input = input.replace(/((\[\[?)|(\]\]?))/g, ''); // take care of [[wikilinks]] and [brackets]
     input = input.replace(/(\(|\))/g, ''); // take care of (parenthesis)
@@ -199,11 +208,11 @@ function SanitizeRule(input: string) {
     note: things like 'every 5 quarters' will translate to 'every 15 months', unless the start date is set at the start of a quarter
     this will yield incorrect results. This also isn't something I care to fix at the moment.
 
-    TODO: after all this nastiness, it looks like moment-range might be able to do a better job
+    TODO:5 after all this nastiness, it looks like moment-range might be able to do a better job
     */
     console.log('After sanitization: ', input);
 
-    // TODO: should probably filter out 'the,' i.e. 'quarter on the last day,' doubtful there's edge cases but who knows. See if chrono handels this already
+    // TODO:170 should probably filter out 'the,' i.e. 'quarter on the last day,' doubtful there's edge cases but who knows. See if chrono handels this already
     return input;
 }
 

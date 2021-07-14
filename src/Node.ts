@@ -31,6 +31,10 @@ class TimeContext extends Context {
 }
 class LocationContext extends Context {
 }
+class WorkspaceContext extends Context {
+}
+class LaneContext extends Context {
+}
 class ExcludeContext extends Context {
 }
 
