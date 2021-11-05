@@ -53,7 +53,7 @@
     (editor = cm), (isSingleCursor = change.text.length == 1);
   }
   function onCursorMove(cm: CodeMirror.Editor) {
-    console.log("asdffdsa", cm == editor, cm === editor);
+    // console.log("asdffdsa", cm == editor, cm === editor);
     if (editor !== cm) close();
     (editor = cm), (cursor = editor.getCursor());
   }

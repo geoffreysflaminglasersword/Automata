@@ -4,7 +4,7 @@ import * as DU from 'src/Utils';
 import * as chrono from 'chrono-node';
 
 import { ANY_ALL_CLAUSE, ANY_META, E, GetClauses, MATCHERS, MetaClause, SanitizeInput } from "src/Scheduling/Clause";
-import { ChroniclerSettings, get, settings, wrap, zip } from '../common';
+import { AutomataSettings, get, settings, wrap, zip } from '../common';
 import { RRule, RRuleSet } from 'rrule';
 
 import { ParsingComponents } from 'chrono-node/dist/results';
@@ -35,7 +35,7 @@ import { moment } from 'src/moment_range';
 */
 export default class TimeRule extends RRuleSet {
     clauses: MetaClause[] = [];
-    settings: ChroniclerSettings;
+    settings: AutomataSettings;
     sanitizedString: string;
 
 
@@ -79,7 +79,7 @@ export default class TimeRule extends RRuleSet {
                 else
                     clause = clause.replace(range, a.map((m) => m.toDate().toLocaleString('en-us', { weekday: 'short' })).join(','));
             }
-            console.log('Pre-comma replace: ', type, clause);
+            // console.log('Pre-comma replace: ', type, clause);
             match = clause.match(singleCommaSet) ?? clause.match(doubleCommaSet);
             if (match) { for (let i of match[0].split(',')) if (i !== '') preclauses.push(clause.replace(match[0], i)); }
             else preclauses.push(clause);
@@ -122,7 +122,7 @@ export default class TimeRule extends RRuleSet {
     }
 
 
-    // for some reason exdates/rules don't work properly unless they're updated to current time, TODO:220 will figure out later
+    // for some reason exdates/rules don't work properly unless they're updated to current time, TODO: will figure out later
     tickleExDates() {
         let x = new Date();
         console.log("tickleDates: %c" + x, 'color:red');
@@ -167,9 +167,9 @@ export default class TimeRule extends RRuleSet {
 
 
 
-// TODO:80 implement better validation at the clause level, include validation that dates don't use 05-05-2020 (dash notation) 
+// TODO: implement better validation at the clause level, include validation that dates don't use 05-05-2020 (dash notation) 
 function SanitizeRule(input: string) {
-    //TODO:120 make sure that this replaces up to the last @, e.g. '@every day @every week'
+    //TODO: make sure that this replaces up to the last @, e.g. '@every day @every week'
     input = input.replace(/.*@ ?(include)?/i, 'include '); // everything before and including '@' isn't important, default to include
     input = input.replace(/((\[\[?)|(\]\]?))/g, ''); // take care of [[wikilinks]] and [brackets]
     input = input.replace(/(\(|\))/g, ''); // take care of (parenthesis)
@@ -208,11 +208,13 @@ function SanitizeRule(input: string) {
     note: things like 'every 5 quarters' will translate to 'every 15 months', unless the start date is set at the start of a quarter
     this will yield incorrect results. This also isn't something I care to fix at the moment.
 
-    TODO:5 after all this nastiness, it looks like moment-range might be able to do a better job
+    TODO: after all this nastiness, it looks like moment-range might be able to do a better job
     */
-    console.log('After sanitization: ', input);
+    // console.log('After sanitization: ', input);
+    // DU.logStackTrace();
+    
 
-    // TODO:170 should probably filter out 'the,' i.e. 'quarter on the last day,' doubtful there's edge cases but who knows. See if chrono handels this already
+    // TODO: should probably filter out 'the,' i.e. 'quarter on the last day,' doubtful there's edge cases but who knows. See if chrono handels this already
     return input;
 }
 

@@ -9,7 +9,7 @@ import RRule from 'rrule';
 import { TFromArray } from 'src/common';
 import { eHOLIDAY } from 'src/Scheduling/holidays';
 
-//TODO:0 add clauses: before, after, remind
+//TODO: add clauses: before, after, remind
 export const CLAUSES = ["starting", "ending", "every"] as const;
 export const META_CLAUSES = ["except", "include"] as const;
 export const ALT_CLAUSES = ['until', 'beginning'] as const;

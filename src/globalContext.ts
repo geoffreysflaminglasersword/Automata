@@ -4,7 +4,7 @@ import { FileContext, Rule } from "./Node";
 import { Invalidator, MemberStoreType, Register, SubscribableKeys, UpdatableKeys, WritablePropertize } from "./Utils";
 import { Subscriber, Writable, get, writable } from "svelte/store";
 
-import { ChroniclerSettings } from "settings";
+import { AutomataSettings } from "settings";
 import { DirectedGraph } from "graphology";
 import { SimpleSet } from "typescript-super-set";
 import Suggestion from './DateSuggestion/Suggestion.svelte';
@@ -22,7 +22,7 @@ let nodeEquare = (first: GNode, second: GNode) => first.accept(new Equare({ othe
 //also, of course, make it possible to filter a board by 'completed before yesterday' for example
 //TODO: when rules are more fleshed out, make sure that a user can rename a rule (replace it's id) and select/compose multiple rules
 
-//TODO:57.5 could make global context a Visitee so that other plugins can write their own graph visitors
+//TODO:.5 could make global context a Visitee so that other plugins can write their own graph visitors
 
 /** 
  * Manages and evaluates the context graph 
@@ -60,7 +60,7 @@ class GlobalContext implements StoredProps {
         this.vault = app.vault;
         this.basePath = (app.vault.adapter as FileSystemAdapter).getBasePath();
         this.plugins = (app as any).internalPlugins.app.plugins.plugins;
-        this.plugin = this.getPlugin('obsidian-chronicler');
+        this.plugin = this.getPlugin('obsidian-Automata');
         this.SWorkspace = writable(app.workspace);
         this.currentFile = this.workspace.getActiveFile();
         this.registerListeners();
@@ -70,30 +70,48 @@ class GlobalContext implements StoredProps {
     private registerListeners() {
         this.workspace.on('active-leaf-change', (l) => {
             this.currentFile = this.workspace.getActiveFile();
-            // console.log('\t\t\t\tChanged Active File');
         });
 
-        // I haven't yet investigated why, but there's an issue when I don't have both of the following listeners
-        this.plugin.registerCodeMirror(((cm: CodeMirror.Editor) => {
+        this.workspace.on('codemirror', (cm: CodeMirror.Editor) => {
+            console.log('CHANGED CODEMIRROR', cm,this);
             if (!cm) return;
+            this.SEditor ??= writable(cm);
             this.editor = cm;
-            console.log('CHANGED CODEMIRROR 1', cm);
-        }).bind(this));
+        });
+
         this.workspace.on('active-leaf-change', ((leaf) => {
-            this.autosuggest = new Suggestion({ target: leaf.view.containerEl, props: {} });
+            console.log('Destroyed autosuggest')
+            // this.autosuggest?.$destroy();
+            // this.autosuggest = null;
+            // this.autosuggest = new Suggestion({ target: leaf.view.containerEl, props: {} });
         }));
 
-        this.workspace.on('layout-ready', () => this.autosuggest = new Suggestion({ target: this.workspace.activeLeaf.view.containerEl, props: {} }));
-        this.workspace.on('codemirror', ((cm: CodeMirror.Editor) => {
-            if (!cm) return;
-            if (!this.SEditor) this.SEditor = writable(cm);
-            this.editor = cm;
-            console.log('CHANGED CODEMIRROR 2', cm);
-        }).bind(this));
+
+        this.workspace.on('layout-change', (layout: any) => {
+            console.log('layout-change', layout);
+            this.autosuggest ??= new Suggestion({ target: this.workspace.activeLeaf.view.containerEl.parentElement, props: {} });
+        });
+
+        this.workspace.on('file-change', (file: File) => {
+            console.log('file-change', file);
+        });
+
+        this.workspace.on('file-create', (file: File) => {
+            console.log('file-create', file);
+        });
+
+        
+        
+        // this.workspace.onLayoutReady(() => {
+        //     console.log('here');
+        //     this.autosuggest = new Suggestion({ target: this.workspace.activeLeaf.view.containerEl, props: {} });
+        // });
+
+
     }
 
     private async graphInit() {
-        let files = await ME.getFilesWithProperty('chronicler');
+        let files = await ME.getFilesWithProperty('automata');
         this.graph = new DirectedGraph();
         await Promise.all(files.map(async f => {
             let task = await new Task().fromFile(f);
@@ -135,7 +153,7 @@ class GlobalContext implements StoredProps {
             let dir = new FileContext(/\/tasks/);
             let rule = new Rule((file, data) => {
                 file.directory = 'mappedDirectory';
-                data = ME.updateYamlProp('chronicler.project', 'backlog', data);
+                data = ME.updateYamlProp('automata.project', 'backlog', data);
             });
             this.addNode(rule, dir);
         }
@@ -172,18 +190,18 @@ class GlobalContext implements StoredProps {
         }
         if (node instanceof Rule) this.rules.push(node);
         if (dependency instanceof Rule) this.rules.push(dependency);
-        console.log(`this.nodeIndex, this.rules,this.graph`, this.nodeIndex, this.rules, this.graph);
+        // console.log(`this.nodeIndex, this.rules,this.graph`, this.nodeIndex, this.rules, this.graph);
         return res;
     }
 
     getPlugin<T extends Plugin = Plugin>(id: PluginId): T { return this.plugins[id] as T; }
-    getSettings<PluginSettings = ChroniclerSettings>(id: PluginId): PluginSettings { return this.plugins[id].settings as PluginSettings; }
+    getSettings<PluginSettings = AutomataSettings>(id: PluginId): PluginSettings { return this.plugins[id].settings as PluginSettings; }
     getManifest(id: PluginId): PluginManifest { return this.plugins[id].manifest; }
 
     public get workspace(): Workspace { return get(this.SWorkspace); }
-    public set workspace(value: Workspace) { this.dualUpdate('SWorkspace', value); }
+    public set workspace(value: Workspace) { this.dualUpdate('SWorkspace', value); console.log('\t\t\tupdated workspace'); }
     public get editor(): CodeMirror.Editor { return get(this.SEditor); }
-    public set editor(value: CodeMirror.Editor) { this.dualUpdate('SEditor', value); }
+    public set editor(value: CodeMirror.Editor) { this.dualUpdate('SEditor', value); console.log('\t\t\tupdated editor'); }
     sub<T extends SubscribableKeys<GlobalContext>>(which: T, s: Subscriber<any>, i?: Invalidator<any>) {
         return this[which].subscribe(s, i);
     }
@@ -199,3 +217,8 @@ class GlobalContext implements StoredProps {
 }
 
 export const Global: GlobalContext = new GlobalContext();
+
+
+
+
+

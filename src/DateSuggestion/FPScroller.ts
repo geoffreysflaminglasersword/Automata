@@ -39,7 +39,7 @@ export default function scrollPlugin(): Plugin {
 
 
 
-//TODO:150 rework positioning logic from flatpickr to auto adjust width and always be centered on cursor (and not wrap)
+//TODO: rework positioning logic from flatpickr to auto adjust width and always be centered on cursor (and not wrap)
 
 /*
 

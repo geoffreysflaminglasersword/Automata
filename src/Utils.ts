@@ -105,7 +105,7 @@ export function Register(
         console.log(`scope,keyEvs,plugin,evs`, scope, keyEvs, plugin, evs);
         throw new Error('In Utils::Register: must have either or both of scope and keyEvs, and plugin and evs');
     };
-    console.log("Register: ", scope, plugin);
+    // console.log("Register: ", scope, plugin);
     return register(
         scope,
         keyEvs?.map((v) => { return { mods: v[0] as Modifier[], key: v[1] as KEY, func: v[2] as KeymapEventListener }; }),
@@ -226,14 +226,6 @@ export function getAttrUpdateOrder<T>(graph: Graph<T>, nodeKey: string): T[] {
 
 
 
-
-
-
-
-
-
-
-
 declare global {
     interface Function {
         multi<T extends any[]>(...args: T): void;
@@ -247,7 +239,11 @@ Function.prototype.multi = function <T extends any[]>(...args: T) {
 
 
 
-
+// log stack trace
+export function logStackTrace() {
+    var err = new Error();
+    console.log(err.stack);
+}
 
 
 

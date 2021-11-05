@@ -7,7 +7,7 @@ export const working: string[] = [
     '@every Halloween,Christmas,mothers-day starting 2 Halloweens ago ending easter 2022',
     '@every 13,7 sat ending 2024AD', // for now, if the year is the only thing in the clause it has to be qualified with BC/AD/BCE/CE
     '@every 1,3 sat,mon',
-    '@every month on 2nd,3rd sat ending 2022CE', //TODO:52.5 replace 4 digit numbers not followed by a suffix with CE
+    '@every month on 2nd,3rd sat ending 2022CE', //TODO:.5 replace 4 digit numbers not followed by a suffix with CE
     '@every thur,sat',
     '@every mon,wed,sat',
     '@every 2 mon,wed,sat',
@@ -50,7 +50,7 @@ export const working: string[] = [
     '@this fri',
     '@last sat',
     '@daily',
-    // TODO:160 rrule currently parses times as integers in 24 hour format only when using daily, so 'every day at 5pm' is actually 'every day at 5' (am)
+    // TODO: rrule currently parses times as integers in 24 hour format only when using daily, so 'every day at 5pm' is actually 'every day at 5' (am)
     // this means time in 'every week on sat at 5pm' isn't  parsed by rrule, but chrono, and is correct, while in order to get 5pm in a daily rule
     // you'd need 'every day at 17'
     '@daily at 5pm', // currently this breaks the default limit (it's converted to  'every day at 5pm for n times', 'at 5pm' stops rrule parsing)
@@ -101,7 +101,7 @@ export const shouldWork: string[] = [
     '@in the morning',
     '@in the afternoon',
     '@this evening',
-    '@tonight', // TODO:180 tonight, tomorrow, morning, afternoon, etc, should be configurable
+    '@tonight', // TODO: tonight, tomorrow, morning, afternoon, etc, should be configurable
     '@last night',
     '@in 2 hours',
     '@5', // assume this is time

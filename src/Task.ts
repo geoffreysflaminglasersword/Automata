@@ -6,14 +6,17 @@ import TimeRule from "Scheduling/Rule";
 /* TODO:
     add special task actions:
     - sequential converts all items in a selected list into a bunch of tasks with sequential dependencies
+        - need either a setting or multiple hotkeys for how this is handeled
+        - top level bullets could depend on each other all the way up, or...
+        - lower level bullets could depend on parents
     - unordered does the same but in a random or no order
     - ticklers don't show up in task views, they just open on their own at (or within) the appointed time (range)
 
-    TODO:8.125 if parsing a hash in taskLine, check the following word(s) to see if it is a location
+    TODO: if parsing a hash in taskLine, check the following word(s) to see if it is a location
   *         the user configured and set the attribute, if not, then set the project attribute
-    TODO:7.5 also, if that word is followed by a colon, then use it as the attribute and what's after the colon as the value
+    TODO: also, if that word is followed by a colon, then use it as the attribute and what's after the colon as the value
   *     e.g.
-  *         @daily #project #coffee shop #answer:42 #location:room // could manually set location too
+  *         @daily #project #coffee-shop #answer:42 #location:room // note that you can manually set location too. Here, the end result is `location: ['coffee-shop','room']`
   
   * TODO: when detecting 'for [time duration]' set task duration
   * TODO: implement task timers
@@ -25,11 +28,11 @@ import TimeRule from "Scheduling/Rule";
   *             at 15 minutes because I'm absorbed in the programming, the routine execution should wait for me to get back to it
 */
 
-export type YAMLProp = 'chronicler' | `chronicler.${keyof TaskMembers}`;
+export type YAMLProp = 'automata' | `automata.${keyof TaskMembers}`;
 interface TaskMembers {
     id: string;
     rule: TimeRule;
-    context: string[];
+    context: string[]; 
     state: string;
     selectedDates?: Date[];
     project?: string;
@@ -77,9 +80,9 @@ export class Task extends TaskBase implements TaskMembers {
     async fromFile(file: TFile) {
         this.file = file;
         this.contents = await Global.vault.cachedRead(file);
-        let rule = ME.getYamlProp('chronicler.rule', this.contents) as string;
+        let rule = ME.getYamlProp('automata.rule', this.contents)[0];
         this.rule = rule ? new TimeRule(rule) : null;
-        this.selectedDates = (ME.getYamlProp('chronicler.selectedDates', this.contents) as string[])?.map(x => new Date(x));
+        this.selectedDates = (ME.getYamlProp('automata.selectedDates', this.contents) as string[])?.map(x => new Date(x));
         this.selectedDates?.forEach(d => this.rule?.rdate(d));
         await this.getProps();
         return this;
@@ -96,22 +99,22 @@ export class Task extends TaskBase implements TaskMembers {
         this.contents = taskContent;
         let context = new TaskContext(this);
         this.id = context.id;
-        this.contents = ME.updateYamlProp('chronicler.id', this.id, this.contents);
-        this.contents = ME.updateYamlProp('chronicler.rule', this.rule.sanitizedString, this.contents);
+        this.contents = ME.updateYamlProp('automata.id', this.id, this.contents);
+        this.contents = ME.updateYamlProp('automata.rule', this.rule.sanitizedString, this.contents);
         //TODO: if a task is a recurrent task, we need to figure out how to handle state
         // we want every completed task to factor into statistics but we can't really keep track of every past recurrance's state
         // we also can't really have multiple instances of the same task... well we could, but that's more work
         // maybe a simple counter is good enough, along with resetting to 'pending' the day after it's due
-        this.contents = ME.updateYamlProp('chronicler.state', 'pending', this.contents);
+        this.contents = ME.updateYamlProp('automata.state', 'pending', this.contents);
 
         Global.addNode(context);
 
-        //TODO:30 use default task directory
+        //TODO: use default task directory
         this.file = await Global.create(new File('tasks', titleContent), this.contents);
         await this.getProps();
         this.rule.print();
 
-        /* TODO:8.75 check settings, determine if we should...
+        /* TODO:.75 check settings, determine if we should...
          *             in original file, add link to task using title ... could also avoid having a setting and use a signifier like []@
          *             always focus on title after creation for easy edit
          *             only focus on title if no contexts resolve
@@ -120,15 +123,15 @@ export class Task extends TaskBase implements TaskMembers {
     }
 
     async getProps() {
-        this.id ??= ME.getYamlProp('chronicler.id', this.contents) as string;
-        this.state = ME.getYamlProp('chronicler.state', this.contents) as string;
-        this.project = ME.getYamlProp('chronicler.project', this.contents) as string;
-        this.location = ME.getYamlProp('chronicler.location', this.contents) as string;
+        this.id ??= ME.getYamlProp('automata.id', this.contents)[0]; ;
+        this.state = ME.getYamlProp('automata.state', this.contents)[0];
+        this.project = ME.getYamlProp('automata.project', this.contents)[0];
+        this.location = ME.getYamlProp('automata.location', this.contents)[0];
+        this.context = ME.getYamlProp('automata.context', this.contents) as string[];
+
     }
 
     //onUpdate
     // if completed and is linked to a Standard Task, complete the standard task
 }
-
-
 

@@ -123,7 +123,7 @@ function getEaster(year: number, holiday: { type: string; date: any; nth: number
     return d;
 }
 
-// TODO:10 add more holidays, also add user configuration option to add personal holidays
+// TODO: add more holidays, also add user configuration option to add personal holidays
 export const holidays =
     [
         { "type": "rel", "month": 0, "day": 1, "nth": 3, "rrule": "jan on third mon", "name": "(martin luther king('?s)?(, j(unio)?r\\.?)?|mlk) day" },

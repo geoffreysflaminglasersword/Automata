@@ -78,7 +78,7 @@ chrono.casual.parsers.push({
         let start = new Date(), end = new Date();
         start.setMonth(start.getMonth() + 3);
         end.setMonth(start.getMonth() + 6);
-        start = DU.randomDate(start, end); // TODO:90 incorporate contexts, and urgency/importance into random range
+        start = DU.randomDate(start, end); // TODO: incorporate contexts, and urgency/importance into random range
         return new ParsingResult(
             context.refDate,
             match.index,
@@ -94,7 +94,7 @@ chrono.casual.parsers.push({
     },
 });
 
-// result.end.assign("timezoneOffset",0) // TODO:55 make refiner that sets all timezones to UTC
+// result.end.assign("timezoneOffset",0) // TODO: make refiner that sets all timezones to UTC
 
 chrono.casual.refiners.push({
     refine: (context, results) => {

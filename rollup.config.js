@@ -2,6 +2,7 @@ import autoPreprocess from "svelte-preprocess";
 import babel from "@rollup/plugin-babel";
 import commonjs from "@rollup/plugin-commonjs";
 import css from 'rollup-plugin-css-only';
+import json from '@rollup/plugin-json';
 import resolve from "@rollup/plugin-node-resolve";
 import svelte from 'rollup-plugin-svelte';
 import typescript from "@rollup/plugin-typescript";
@@ -44,6 +45,7 @@ export default {
         }),
         resolve({ browser: true, dedupe: ["svelte"] }),
 
-        commonjs(),
+        commonjs( /* { sourceMap: false } */ ),
+        json(),
     ]
 };

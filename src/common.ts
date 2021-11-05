@@ -11,7 +11,7 @@ import { Task, YAMLProp } from './Task';
 import { Writable, get, writable } from "svelte/store";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
 
-import { ChroniclerSettings } from "settings";
+import { AutomataSettings } from "settings";
 import { Global } from "./globalContext";
 import { regexIndexOf } from 'Regex';
 import { settings } from "settings";
@@ -25,7 +25,7 @@ export {
 
 export type {
     PluginManifest, KeymapEventHandler, Modifier,
-    KeymapEventListener, ChroniclerSettings,
+    KeymapEventListener, AutomataSettings,
     Options, Instantce, Dir, Name, Path, YAMLProp,
     Node,
 };
@@ -33,7 +33,7 @@ export type {
 
 
 export const PluginRef = [
-    'chronicler',
+    'Automata',
     'kanban',
 ] as const;
 

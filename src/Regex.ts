@@ -19,7 +19,7 @@ export const getYamlSub = (parent: string, child: string) =>
 
 export const replaceYamlProp = (contents: string, prop: string, newValue: string) =>
     nullReplace(contents, getYamlProp(prop), `$1${newValue}$3`);
-export const replaceYamlSub = (contents: string, parent: string, child: string, newValue: string) =>
+export const replaceYamlSubproperty = (contents: string, parent: string, child: string, newValue: string) =>
     nullReplace(contents, getYamlSub(parent, child), `$1${newValue}$3`);
 
 export const nullReplace = (input: string, regex: RegExp, replace: string) => {

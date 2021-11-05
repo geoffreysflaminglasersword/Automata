@@ -1,39 +1,40 @@
+import "source-map-support/register";
 import './Scheduling/refinersAndParsers';
 
-import { ChroniclerSettingTab, ChroniclerSettings, DEFAULT_SETTINGS } from './Settings/settings';
+import { AutomataSettingTab, AutomataSettings, DEFAULT_SETTINGS } from './Settings/settings';
 import { Global, ME, Modal, Plugin, Register } from './common';
 
 // having issues with styling, tabling it since I don't know enough about it yet
 // import "flatpickr/dist/flatpickr.min.css";
 // import "./styles.css";
 
-export default class Chronicler extends Plugin {
-	settings: ChroniclerSettings;
+export default class Automata extends Plugin {
+	settings: AutomataSettings;
 
 	async onload() {
-		console.log('loading Chronicler');
+		console.log('loading Automata');
 		await this.loadSettings();
-		this.addSettingTab(new ChroniclerSettingTab(this.app, this));
+		this.addSettingTab(new AutomataSettingTab(this.app, this));
 		this.addCommands();
 		await Global.initialize(this.app);
 		this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
 	}
 
 	onLayoutReady(): void { }
-	onunload() { console.log('unloading Chronicler'); }
+	onunload() { console.log('unloading Automata'); }
 	async loadSettings() { this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()); }
 	async saveSettings() { await this.saveData(this.settings); }
 
 	addCommands() {
 		// modal currently just for trying things out
 		this.addCommand({
-			id: 'open-Chronicler-modal',
-			name: 'Open Chronicler Modal',
+			id: 'open-Automata-modal',
+			name: 'Open Automata Modal',
 			checkCallback: (checking: boolean) => {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new ChroniclerModal().open();
+						new AutomataModal().open();
 					}
 					return true;
 				}
@@ -41,6 +42,23 @@ export default class Chronicler extends Plugin {
 			}
 
 		});
+
+		//this command will list all files in the vault containing the string "automata" in their yaml data
+		this.addCommand({
+			id: 'list-Automata-files',
+			name: 'List Automata Files',
+			checkCallback: (checking: boolean) => {
+				let leaf = this.app.workspace.activeLeaf;
+				if (leaf) {
+					if (!checking) {
+						let files = ME.getFilesWithProperty('automata');
+						console.log(files);
+					}
+					return true;
+				}
+				return false;
+			}
+		});		
 
 		// this only here to add lines in console for visual separation while debugging
 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
@@ -53,17 +71,20 @@ export default class Chronicler extends Plugin {
 
 
 /** only here for testing random stuff  */
-class ChroniclerModal /*extends FuzzySuggestModal<string>*/ extends Modal {
+class AutomataModal /*extends FuzzySuggestModal<string>*/ extends Modal {
 	constructor() {
 		super(Global.app);
 	}
-
+	// cal: Calendar;
 	async onOpen() {
 		let { contentEl, containerEl } = this;
-		console.log(await ME.asyncGetYamlProp('chronicler.context'));
-		console.log(await ME.asyncUpdateYamlProp('chronicler.context', ['uolo', 'asdf']));
-		console.log(await ME.asyncGetYamlProp('chronicler.context'));
-		console.log(await ME.getFilesWithProperty('chronicler.context'));
+		// this.cal = new Calendar({ target: containerEl });
+
+		// console.log(await ME.asyncGetYamlProp('Automata.context'));
+		// console.log(await ME.asyncUpdateYamlProp('Automata.context', ['uolo', 'asdf']));
+		// console.log(await ME.asyncGetYamlProp('Automata.context'));
+		// console.log(await ME.getFilesWithProperty('Automata.context'));
+
 	}
 
 	onClose() {
@@ -80,6 +101,9 @@ class ChroniclerModal /*extends FuzzySuggestModal<string>*/ extends Modal {
 	// onChooseItem(item: string, evt: MouseEvent | KeyboardEvent): void {
 	// 	console.log(`item`, item);
 	// }
-
-
 }
+
+
+
+
+
