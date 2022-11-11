@@ -1,4 +1,4 @@
-import { KEY, ObsidianEvent, Plugin, Scope, KeymapEventListener, Modifier } from './common';
+import { KEY, ObsidianEvent, Plugin, Scope, KeymapEventListener, Modifier, style } from './common';
 import { MONTHS } from './Scheduling/Clause';
 import flatpickr from "flatpickr";
 import * as RX from 'Regex';
@@ -10,6 +10,13 @@ import { Attributes, NodeKey } from "graphology-types";
 import Graph from 'graphology';
 import { dijkstra } from "graphology-shortest-path";
 import toposort from "toposort";
+
+
+export const cssBase = 'automata-view';
+
+export function c(className: string) {
+    return `${cssBase}__${className} b`;
+  }
 
 
 
@@ -225,18 +232,27 @@ export function getAttrUpdateOrder<T>(graph: Graph<T>, nodeKey: string): T[] {
 
 
 
-
 declare global {
     interface Function {
         multi<T extends any[]>(...args: T): void;
+        boundMulti<S,T extends any[]>(bound:S, ...args: T): void;
     }
 }
 
+/* allows calling a function on each argument (rather than duplicating the function call many times) */
 Function.prototype.multi = function <T extends any[]>(...args: T) {
-    args.forEach((v) => (<Function>this).call(v));
+    args.forEach((v) => {
+        console.log('%c Here',style,v);
+        (<Function>this).call(v)}
+        );
 };
 
-
+/* allows calling a function on each argument, while binding the function call to the first argument */
+Function.prototype.boundMulti = function <S,T extends any[]>(bound:S, ...args: T) {
+    args.forEach((v) => {
+        console.log('%c Here',style,this,'\n',bound,'\n',v);
+        (<Function>this).bind(bound).call(v)});
+};
 
 
 // log stack trace

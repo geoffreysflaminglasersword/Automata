@@ -1,5 +1,5 @@
 import { Activator, Equare } from "./Visitor";
-import { App, File, FileSystemAdapter, Node as GNode, ME, Plugin, PluginId, PluginManifest, TFile, Task, Vault, Workspace } from "common";
+import { App, File, FileSystemAdapter, Node as GNode, ME, Plugin, PluginId, PluginManifest, TFile, Task, Vault, Workspace, style } from "common";
 import { FileContext, Rule } from "./Node";
 import { Invalidator, MemberStoreType, Register, SubscribableKeys, UpdatableKeys, WritablePropertize } from "./Utils";
 import { Subscriber, Writable, get, writable } from "svelte/store";
@@ -63,51 +63,78 @@ class GlobalContext implements StoredProps {
         this.plugin = this.getPlugin('obsidian-Automata');
         this.SWorkspace = writable(app.workspace);
         this.currentFile = this.workspace.getActiveFile();
-        this.registerListeners();
         await this.graphInit();
+        this.registerListeners();
     }
+    
 
     private registerListeners() {
-        this.workspace.on('active-leaf-change', (l) => {
-            this.currentFile = this.workspace.getActiveFile();
-        });
 
-        this.workspace.on('codemirror', (cm: CodeMirror.Editor) => {
-            console.log('CHANGED CODEMIRROR', cm,this);
-            if (!cm) return;
-            this.SEditor ??= writable(cm);
-            this.editor = cm;
-        });
+        /* this automatically takes care of unregistering each of these listeners 
+            when the plugin is unloaded */
+        // this.plugin.registerEvent.boundMulti(this.plugin,
+        //     this.workspace.on('active-leaf-change', (l) => {
+        //         this.currentFile = this.workspace.getActiveFile();
+        //     }),
 
-        this.workspace.on('active-leaf-change', ((leaf) => {
-            console.log('Destroyed autosuggest')
-            // this.autosuggest?.$destroy();
-            // this.autosuggest = null;
-            // this.autosuggest = new Suggestion({ target: leaf.view.containerEl, props: {} });
-        }));
+        //     this.workspace.on('codemirror', (cm: CodeMirror.Editor) => {
+        //         console.log('CHANGED CODEMIRROR', cm,this);
+        //         if (!cm) return;
+        //         this.SEditor ??= writable(cm);
+        //         this.editor = cm;
+        //     }),
 
+        //     this.workspace.on('layout-change', () => {
+        //         console.log('%c layout-change', style, this.autosuggest);
+        //         this.autosuggest ??= new Suggestion({ target: this.workspace.activeLeaf.view.containerEl.parentElement, props: {} });
+        //     }),
+    
+        //     this.workspace.on('file-change', (file: File) => {
+        //         console.log('%c file-change', style, file);
+        //     }),
+    
+        //     this.workspace.on('file-create', (file: File) => {
+        //         console.log('%c file-create', style, file);
+        //     }),
 
-        this.workspace.on('layout-change', (layout: any) => {
-            console.log('layout-change', layout);
-            this.autosuggest ??= new Suggestion({ target: this.workspace.activeLeaf.view.containerEl.parentElement, props: {} });
-        });
-
-        this.workspace.on('file-change', (file: File) => {
-            console.log('file-change', file);
-        });
-
-        this.workspace.on('file-create', (file: File) => {
-            console.log('file-create', file);
-        });
-
-        
-        
-        // this.workspace.onLayoutReady(() => {
-        //     console.log('here');
-        //     this.autosuggest = new Suggestion({ target: this.workspace.activeLeaf.view.containerEl, props: {} });
-        // });
-
-
+        //     this.workspace.on('active-leaf-change', ((leaf) => {
+        //         console.log('%c active-leaf-change', style, leaf);
+        //     })),
+        // );
+        this.plugin.registerEvent(
+            this.workspace.on('active-leaf-change', (l) => {
+                this.currentFile = this.workspace.getActiveFile();
+            })
+        );
+        this.plugin.registerEvent(
+            this.workspace.on('codemirror', (cm: CodeMirror.Editor) => {
+                console.log('CHANGED CODEMIRROR', cm, this);
+                if (!cm) return;
+                this.SEditor ??= writable(cm);
+                this.editor = cm;
+            })
+        );
+        this.plugin.registerEvent(
+            this.workspace.on('layout-change', () => {
+                console.log('%c layout-change', style, this.autosuggest);
+                this.autosuggest ??= new Suggestion({ target: this.workspace.activeLeaf.view.containerEl.parentElement, props: {} });
+            })
+        );
+        this.plugin.registerEvent(
+            this.workspace.on('file-change', (f: File) => {
+                console.log('%c file-change', style, file);
+            })
+        );
+        this.plugin.registerEvent(
+            this.workspace.on('file-create', (file: File) => {
+                console.log('%c file-create', style, file);
+            })
+        );
+        this.plugin.registerEvent(
+            this.workspace.on('active-leaf-change', ((leaf) => {
+                console.log('%c active-leaf-change', style, leaf);
+            }))
+        );
     }
 
     private async graphInit() {

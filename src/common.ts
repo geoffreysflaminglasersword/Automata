@@ -11,6 +11,7 @@ import { Task, YAMLProp } from './Task';
 import { Writable, get, writable } from "svelte/store";
 import { getContext, onDestroy, onMount, setContext } from "svelte";
 
+import { AView } from "./View/automataView";
 import { AutomataSettings } from "settings";
 import { Global } from "./globalContext";
 import { regexIndexOf } from 'Regex';
@@ -21,15 +22,18 @@ export {
     App, FileSystemAdapter, Plugin, Scope, Vault, Modal, Notice, PluginSettingTab,
     ItemView, WorkspaceLeaf, Setting, zip, Register, isNullOrWhitespace, get,
     getUniqueArray, RX, regexIndexOf, wrap, Workspace, Global, File, ME, Context, TFile, Task,
+    AView,
 };
 
 export type {
     PluginManifest, KeymapEventHandler, Modifier,
     KeymapEventListener, AutomataSettings,
     Options, Instantce, Dir, Name, Path, YAMLProp,
-    Node,
+    Node,Writable
 };
 
+
+export const style = 'font-weight: bold; color: yellow;';
 
 
 export const PluginRef = [

@@ -36,5 +36,5 @@
       "settings": [ "src/Settings/settings" ],
     },
   },
-  "include": ["**/*.ts", "**/*.tsx","**/*.svelte"]
+  "include": ["**/*.ts", "**/*.tsx","**/*.svelte", "src/View/AResize.js"]
 }

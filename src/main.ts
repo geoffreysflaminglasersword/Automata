@@ -1,8 +1,10 @@
 import "source-map-support/register";
 import './Scheduling/refinersAndParsers';
 
+import { AView, Global, ME, Modal, Plugin, Register } from './common';
 import { AutomataSettingTab, AutomataSettings, DEFAULT_SETTINGS } from './Settings/settings';
-import { Global, ME, Modal, Plugin, Register } from './common';
+
+import { addView } from "./View/automataView";
 
 // having issues with styling, tabling it since I don't know enough about it yet
 // import "flatpickr/dist/flatpickr.min.css";
@@ -15,17 +17,33 @@ export default class Automata extends Plugin {
 		console.log('loading Automata');
 		await this.loadSettings();
 		this.addSettingTab(new AutomataSettingTab(this.app, this));
+		this.registerViews();
 		this.addCommands();
 		await Global.initialize(this.app);
 		this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
 	}
 
 	onLayoutReady(): void { }
+
 	onunload() { console.log('unloading Automata'); }
 	async loadSettings() { this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()); }
 	async saveSettings() { await this.saveData(this.settings); }
 
+	registerViews()  {
+		this.registerView('automata', (leaf) => new AView(leaf));
+		this.addRibbonIcon("dice", "Open Automata", (() => { addView(this.app.workspace);}).bind(this));
+	 }
+
+	//compute the answer
+
 	addCommands() {
+		// this command will open an automata view
+		this.addCommand({
+			id:'open-Automata-view',
+			name: 'Open Automata View',
+			callback: () => { addView(this.app.workspace); }
+		})
+		
 		// modal currently just for trying things out
 		this.addCommand({
 			id: 'open-Automata-modal',
